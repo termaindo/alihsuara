@@ -8,6 +8,18 @@ import os
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Studio Alih Suara Pro", page_icon="🎙️", layout="wide")
 
+# --- PEMBERSIHAN SISTEM (SANGAT KRUSIAL) ---
+# 1. Hapus variabel lingkungan yang mungkin membingungkan Gemini
+if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
+    del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+
+# 2. Hapus file JSON fisik yang mungkin masih tertinggal di server Streamlit dari percobaan versi 1
+if os.path.exists("google_creds.json"):
+    try:
+        os.remove("google_creds.json")
+    except:
+        pass
+
 # --- PROMPT DIREKTUR KREATIF ---
 DIREKTUR_PROMPT = """
 [PERAN & PERSONA]
@@ -50,18 +62,16 @@ b) Gaya normal: 2.4 - 2.6 wps
 Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah industri seperti "pacing", "intonasi", dan "vocal fry" jika relevan, dan beri penjelasan sederhana dan singkat untuk istilah teknis tersebut, supaya bisa dipahami juga oleh orang awam pemakai jasamu.
 """
 
-# --- SETUP KREDENSIAL (MEMORI BERSIH) ---
+# --- SETUP KREDENSIAL (ISOLASI TOTAL) ---
 try:
-    if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
-        del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-
     gemini_key = st.secrets["GEMINI_API_KEY"]
     gcp_creds = st.secrets["GCP_CREDENTIALS"]
 
-    # 1. Jalur Khusus Gemini (API Key)
+    # 1. Jalur Khusus Gemini (Isolasi API Key)
+    os.environ["GOOGLE_API_KEY"] = gemini_key
     genai.configure(api_key=gemini_key)
 
-    # 2. Jalur Khusus Google Cloud TTS (Service Account)
+    # 2. Jalur Khusus Google Cloud TTS
     if isinstance(gcp_creds, str):
         gcp_creds_dict = json.loads(gcp_creds)
     else:
@@ -86,20 +96,21 @@ tab1, tab2 = st.tabs(["📝 Ruang 1: Rapat Naskah (Chat)", "🎧 Ruang 2: Studio
 with tab1:
     st.info("💡 **Tips:** Jawab pertanyaan Direktur Kreatif di bawah ini untuk memulai proses kreatif.")
     
-    # KUNCI PERBAIKAN: Menggunakan nama variabel baru 'chat_session_v2' agar memori lama dibuang
-    if "chat_session_v2" not in st.session_state:
+    # Menggunakan v3 agar memori error sebelumnya benar-benar terhapus
+    if "chat_session_v3" not in st.session_state:
+        # Menambahkan 'models/' secara eksplisit untuk mencegah 404 NotFound
         model_direktur = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="models/gemini-1.5-flash",
             system_instruction=DIREKTUR_PROMPT
         )
         # Memulai chat baru
-        st.session_state.chat_session_v2 = model_direktur.start_chat(history=[])
+        st.session_state.chat_session_v3 = model_direktur.start_chat(history=[])
         
         # Pancingan agar Direktur menyapa duluan
-        st.session_state.chat_session_v2.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
+        st.session_state.chat_session_v3.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
     
     # Menampilkan riwayat chat
-    for message in st.session_state.chat_session_v2.history[1:]: # Skip pesan pancingan sistem
+    for message in st.session_state.chat_session_v3.history[1:]: # Skip pesan pancingan sistem
         role = "assistant" if message.role == "model" else "user"
         with st.chat_message(role):
             st.markdown(message.parts[0].text)
@@ -111,7 +122,7 @@ with tab1:
             st.markdown(prompt_user)
         # Kirim ke Gemini dan tampilkan balasan
         with st.chat_message("assistant"):
-            response = st.session_state.chat_session_v2.send_message(prompt_user)
+            response = st.session_state.chat_session_v3.send_message(prompt_user)
             st.markdown(response.text)
 
 # ==========================================
