@@ -52,7 +52,6 @@ Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah i
     # --- 3. SETUP KREDENSIAL GEMINI (STANDAR) ---
     try:
         gemini_key = st.secrets["GEMINI_API_KEY"]
-        # KUNCI PERBAIKAN: Kembali ke konfigurasi standar yang stabil karena file sudah dipisah
         genai.configure(api_key=gemini_key)
     except Exception as e:
         st.error(f"Kredensial Gemini bermasalah: {e}\nPastikan GEMINI_API_KEY sudah ada di Secrets.")
@@ -63,36 +62,44 @@ Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah i
     st.info("💡 **Tips:** Jawab pertanyaan Direktur di bawah ini untuk memulai proses kreatif pembuatan naskah yang berjiwa.")
 
     # --- 5. LOGIKA CHAT AI ---
-    # Menggunakan nama memori baru agar melupakan error sebelumnya
     if "chat_naskah_v4" not in st.session_state:
+        # KOREKSI: Gunakan fully qualified model name
         model_direktur = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="models/gemini-1.5-flash", 
             system_instruction=DIREKTUR_PROMPT
         )
         st.session_state.chat_naskah_v4 = model_direktur.start_chat(history=[])
         
-        # Pancingan agar AI menyapa duluan sesuai Alur Kerja Wajib tahap 1
-        st.session_state.chat_naskah_v4.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
+        # KOREKSI: Bungkus pesan pancingan awal dengan error handling
+        try:
+            st.session_state.chat_naskah_v4.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
+        except Exception as e:
+            st.error(f"Gagal menghubungi server Gemini API. Pastikan model tersedia dan API Key valid. Detail: {e}")
+            st.stop() # Hentikan eksekusi agar tidak terjadi cascade error
 
     # Menampilkan riwayat chat ke layar (kecuali pesan pancingan awal)
-    for message in st.session_state.chat_naskah_v4.history[1:]:
-        role = "assistant" if message.role == "model" else "user"
-        with st.chat_message(role):
-            st.markdown(message.parts[0].text)
+    if len(st.session_state.chat_naskah_v4.history) > 1:
+        for message in st.session_state.chat_naskah_v4.history[1:]:
+            role = "assistant" if message.role == "model" else "user"
+            with st.chat_message(role):
+                try:
+                    st.markdown(message.parts[0].text)
+                except IndexError:
+                    st.markdown("*(Pesan diblokir oleh sistem keamanan AI)*")
 
     # Menangkap input dari pengguna
     if prompt_user := st.chat_input("Ketik jawaban atau instruksi Anda di sini..."):
-        # Tampilkan teks user
         with st.chat_message("user"):
             st.markdown(prompt_user)
             
-        # Tampilkan balasan Gemini
         with st.chat_message("assistant"):
             try:
-                response = st.session_state.chat_naskah_v4.send_message(prompt_user)
-                st.markdown(response.text)
+                # KOREKSI: Tambahkan spinner untuk UX yang lebih baik
+                with st.spinner("Direktur sedang menyusun strategi..."):
+                    response = st.session_state.chat_naskah_v4.send_message(prompt_user)
+                    st.markdown(response.text)
             except Exception as e:
-                st.error(f"Mohon maaf, terjadi gangguan pada AI: {e}")
+                st.error(f"Mohon maaf, terjadi gangguan pada komunikasi AI: {e}")
 
     # --- 6. TOMBOL NAVIGASI MENUJU STUDIO REKAMAN ---
     st.divider()
