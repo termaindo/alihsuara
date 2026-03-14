@@ -5,7 +5,8 @@ def run():
     import google.generativeai as genai
     import os
 
-    # Karantina Sistem: Hapus memori TTS jika ada
+    # --- KARANTINA SISTEM ---
+    # 1. Hapus memori KTP Google Cloud TTS agar tidak dibaca Gemini
     if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
         del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
@@ -51,9 +52,13 @@ def run():
     Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah industri seperti "pacing", "intonasi", dan "vocal fry" jika relevan, dan beri penjelasan sederhana dan singkat untuk istilah teknis tersebut, supaya bisa dipahami juga oleh orang awam pemakai jasamu.
     """
 
+    # --- SETUP KREDENSIAL GEMINI (ISOLASI TOTAL) ---
     try:
         gemini_key = st.secrets["GEMINI_API_KEY"]
-        genai.configure(api_key=gemini_key)
+        
+        # KUNCI PERBAIKAN: Paksa Gemini menggunakan jalur REST dan tetapkan API Key di environment
+        os.environ["GOOGLE_API_KEY"] = gemini_key
+        genai.configure(api_key=gemini_key, transport="rest")
     except Exception as e:
         st.error(f"Kredensial Gemini bermasalah: {e}")
         st.stop()
@@ -61,15 +66,17 @@ def run():
     st.title("📝 Ruang 1: Rapat Naskah Direktur Kreatif")
     st.info("💡 **Tips:** Jawab pertanyaan Direktur di bawah ini.")
 
-    if "chat_session_naskah" not in st.session_state:
+    # KUNCI PERBAIKAN 2: Ubah nama memori chat menjadi v2 agar riwayat error sebelumnya terhapus
+    if "chat_session_naskah_v2" not in st.session_state:
+        # Gunakan prefix 'models/' agar server tidak bingung mencari nama model
         model_direktur = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="models/gemini-1.5-flash",
             system_instruction=DIREKTUR_PROMPT
         )
-        st.session_state.chat_session_naskah = model_direktur.start_chat(history=[])
-        st.session_state.chat_session_naskah.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
+        st.session_state.chat_session_naskah_v2 = model_direktur.start_chat(history=[])
+        st.session_state.chat_session_naskah_v2.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
 
-    for message in st.session_state.chat_session_naskah.history[1:]:
+    for message in st.session_state.chat_session_naskah_v2.history[1:]:
         role = "assistant" if message.role == "model" else "user"
         with st.chat_message(role):
             st.markdown(message.parts[0].text)
@@ -79,12 +86,12 @@ def run():
             st.markdown(prompt_user)
         with st.chat_message("assistant"):
             try:
-                response = st.session_state.chat_session_naskah.send_message(prompt_user)
+                response = st.session_state.chat_session_naskah_v2.send_message(prompt_user)
                 st.markdown(response.text)
             except Exception as e:
                 st.error(f"Error AI: {e}")
 
-    # TOMBOL LANJUTAN SEPERTI IDE BAPAK
+    # TOMBOL LANJUTAN MENUJU STUDIO REKAMAN
     st.divider()
     if st.button("🚀 Naskah Selesai? Lanjut ke Studio Rekaman (VO)", use_container_width=True):
         st.session_state.menu_aktif = "2. Studio Rekaman"
