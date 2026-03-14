@@ -33,7 +33,7 @@ st.divider()
 # --- ROUTER LOGIC ---
 if st.session_state.menu_aktif == "Home":
     st.subheader("Selamat Datang, Bapak Musa!")
-    st.write("Sistem modular ini memisahkan otak Gemini dan mesin Google TTS agar terhindar dari tabrakan memori.")
+    st.write("Silakan pilih mana ruangan kerja dan direktur kreatif yang kamu perlukan? Apakah Direktur Kreatif Penyusun Naskah, atau Direktur Kreatif Perekaman Suara?")
     st.info("💡 **Petunjuk:** Silakan klik tombol **📝 Ruang Naskah** di atas untuk meracik skrip bersama Direktur Kreatif, atau **🎧 Studio Rekaman** jika Anda sudah punya teks yang ingin langsung diubah menjadi suara.")
 
 elif st.session_state.menu_aktif == "1. Ruang Naskah":
