@@ -21,7 +21,7 @@ def run():
         st.stop()
 
     st.title("🎧 Ruang 2: Studio Rekaman Pro")
-    st.info("💡 **Informasi:** Studio ini mendukung mode **SSML**. AI di Ruang 1 telah menyisipkan kode khusus agar suara mesin memiliki jeda napas dan penekanan nada yang natural.")
+    st.info("💡 **Informasi:** Studio ini memakai dukungan AI untuk membaca naskah yang dibuat di Ruang 1 dan menghasilkan suara yang natural. Silakan atur Laju Bicara dan Nada Suara untuk mendapat rekaman yang paling sesuai keinginan Anda.")
     
     # --- 2. LOGIKA PENARIKAN DATA OTOMATIS ---
     instruksi_rekaman = ""
