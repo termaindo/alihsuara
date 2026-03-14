@@ -1,10 +1,11 @@
 import streamlit as st
 import google.generativeai as genai
 from google.cloud import texttospeech
-import os
+from google.oauth2 import service_account
+import json
 
 # --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Studio Sulih Suara", page_icon="🎙️", layout="wide")
+st.set_page_config(page_title="Studio Alih Suara Pro", page_icon="🎙️", layout="wide")
 
 # --- PROMPT DIREKTUR KREATIF (DARI PAK MUSA) ---
 DIREKTUR_PROMPT = """
@@ -21,7 +22,7 @@ Jangan langsung menulis naskah. Sapa pengguna dan mintalah detail berikut:
 
 2. Tahap Opsi Nuansa (Creative Pitch)
 Sajikan 2-3 Pilihan Nuansa dalam tabel:
-- Nuansa: Nama gaya (misal: "Zen", "Energetik").
+- Nuansa: Nama gaya (misal: "Zen", "Energetik", "Informatif", "Rileks").
 - Visualisasi Suasana: Analogi puitis (misal: "Seperti embun di pagi hari").
 - Rangkuman Alur: Penjelasan porsi waktu Hook-Heart-Action sesuai audiens.
 
@@ -48,27 +49,33 @@ b) Gaya normal: 2.4 - 2.6 wps
 Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah industri seperti "pacing", "intonasi", dan "vocal fry" jika relevan, dan beri penjelasan sederhana dan singkat untuk istilah teknis tersebut, supaya bisa dipahami juga oleh orang awam pemakai jasamu.
 """
 
-# --- SETUP KREDENSIAL ---
+# --- SETUP KREDENSIAL (SUDAH DIPERBAIKI JALURNYA) ---
 try:
     gemini_key = st.secrets["GEMINI_API_KEY"]
-    gcp_json_string = st.secrets["GCP_CREDENTIALS"]
+    gcp_creds = st.secrets["GCP_CREDENTIALS"]
 
+    # 1. Jalur Khusus Gemini (API Key)
     genai.configure(api_key=gemini_key)
 
-    if not os.path.exists("google_creds.json"):
-        with open("google_creds.json", "w", encoding="utf-8") as f:
-            f.write(gcp_json_string)
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "google_creds.json"
+    # 2. Jalur Khusus Google Cloud TTS (Service Account)
+    # Parsing JSON dari Streamlit Secrets tanpa mengenai Environment Variable
+    if isinstance(gcp_creds, str):
+        gcp_creds_dict = json.loads(gcp_creds)
+    else:
+        gcp_creds_dict = dict(gcp_creds)
+        
+    tts_credentials = service_account.Credentials.from_service_account_info(gcp_creds_dict)
+
 except Exception as e:
-    st.error("Error Kredensial. Cek Secrets Anda.")
+    st.error(f"Error Kredensial. Cek Secrets Anda. Detail: {e}")
     st.stop()
 
 # --- TAMPILAN ANTARMUKA ---
-st.title("🎙️ Studio Sulih Suara AI")
-st.markdown("Bersama Direktur Kreatif Naskah & Mesin Suara Neural2")
+st.title("🎙️ Studio Alih Suara Pro")
+st.markdown("Bersama Direktur Kreatif Naskah & Studio Rekaman Suara Pro")
 
 # Membuat 2 Tab
-tab1, tab2 = st.tabs(["📝 Ruang 1: Rapat Naskah (Chat)", "🎧 Ruang 2: Studio Rekaman (TTS)"])
+tab1, tab2 = st.tabs(["📝 Ruang 1: Rapat Naskah (Chat)", "🎧 Ruang 2: Studio Rekaman"])
 
 # ==========================================
 # TAB 1: RUANG RAPAT DIREKTUR KREATIF
@@ -86,7 +93,7 @@ with tab1:
         st.session_state.chat_session = model_direktur.start_chat(history=[])
         
         # Pancingan agar Direktur menyapa duluan
-        sapaan_awal = st.session_state.chat_session.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
+        st.session_state.chat_session.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
     
     # Menampilkan riwayat chat
     for message in st.session_state.chat_session.history[1:]: # Skip pesan pancingan sistem
@@ -122,7 +129,9 @@ with tab2:
         if user_input:
             try:
                 with st.spinner("Google Cloud sedang memproduksi suara..."):
-                    client = texttospeech.TextToSpeechClient()
+                    # Masukkan credentials secara spesifik HANYA ke klien TTS
+                    client = texttospeech.TextToSpeechClient(credentials=tts_credentials)
+                    
                     # Membersihkan tag [Jeda] atau (Emosi) agar tidak ikut terbaca oleh robot
                     naskah_bersih = user_input.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
                     
