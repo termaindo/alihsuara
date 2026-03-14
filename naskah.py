@@ -217,4 +217,47 @@ PENTING: Jangan tampilkan tabel metadata, perbandingan ritme, atau istilah tekni
     # LANGKAH 6: PROSES AI & HASIL
     # ==========================================
     elif st.session_state.wizard_step == 6:
-        st.subheader("
+        st.subheader("🎬 Hasil Naskah Direktur Kreatif")
+
+        if not st.session_state.hasil_naskah:
+            with st.spinner("Menyusun naskah yang berjiwa... (Tunggu sekitar 5-10 detik)"):
+                try:
+                    model_direktur = genai.GenerativeModel(
+                        model_name="gemini-2.5-flash",
+                        system_instruction=DIREKTUR_PROMPT
+                    )
+                    
+                    # Menyusun paket data dari rangkuman untuk dikirim ke Gemini
+                    prompt_final = f"""
+                    Tolong buatkan naskah berdasarkan panduan berikut:
+                    - Produk/Jasa: {st.session_state.jawaban['produk']}
+                    - Poin Penting/Keunggulan: {st.session_state.jawaban['poin_penting']}
+                    - Durasi Target: {st.session_state.jawaban['durasi']}
+                    - Target Audiens: {st.session_state.jawaban['audiens']}
+                    - Vibe/Emosi: {st.session_state.jawaban['vibe']}
+                    - Konteks Platform: {st.session_state.jawaban['konteks']}
+                    - Catatan Tambahan: {st.session_state.jawaban['tambahan'] if st.session_state.jawaban['tambahan'] else "Tidak ada"}
+                    """
+                    
+                    response = model_direktur.generate_content(prompt_final)
+                    st.session_state.hasil_naskah = response.text
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
+                    if st.button("Coba Lagi"):
+                        st.rerun()
+        else:
+            # Menampilkan naskah yang sudah selesai
+            st.markdown(st.session_state.hasil_naskah)
+
+            st.divider()
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Buat Naskah Baru"):
+                    st.session_state.hasil_naskah = ""
+                    st.session_state.wizard_step = 1
+                    st.rerun()
+            with col2:
+                if st.button("🚀 Lanjut ke Studio Rekaman (VO)", use_container_width=True):
+                    st.session_state.menu_aktif = "2. Studio Rekaman"
+                    st.rerun()
