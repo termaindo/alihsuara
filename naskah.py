@@ -5,8 +5,7 @@ import os
 def run():
     # --- 1. KARANTINA MEMORI SISTEM ---
     # Memastikan tidak ada KTP Google Cloud TTS yang tersangkut di ruangan ini
-    if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
-        del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+    os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
     # --- 2. PROMPT DIREKTUR KREATIF ---
     DIREKTUR_PROMPT = """
@@ -50,11 +49,11 @@ b) Gaya normal: 2.4 - 2.6 wps
 Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah industri seperti "pacing", "intonasi", dan "vocal fry" jika relevan, dan beri penjelasan sederhana dan singkat untuk istilah teknis tersebut, supaya bisa dipahami juga oleh orang awam pemakai jasamu.
     """
 
-    # --- 3. SETUP KREDENSIAL GEMINI (JALUR AMAN) ---
+    # --- 3. SETUP KREDENSIAL GEMINI (STANDAR) ---
     try:
         gemini_key = st.secrets["GEMINI_API_KEY"]
-        # Memaksa Gemini pakai jalur HTTP biasa (rest) dan memanggil kunci langsung
-        genai.configure(api_key=gemini_key, transport="rest")
+        # KUNCI PERBAIKAN: Kembali ke konfigurasi standar yang stabil karena file sudah dipisah
+        genai.configure(api_key=gemini_key)
     except Exception as e:
         st.error(f"Kredensial Gemini bermasalah: {e}\nPastikan GEMINI_API_KEY sudah ada di Secrets.")
         st.stop()
@@ -64,19 +63,19 @@ Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah i
     st.info("💡 **Tips:** Jawab pertanyaan Direktur di bawah ini untuk memulai proses kreatif pembuatan naskah yang berjiwa.")
 
     # --- 5. LOGIKA CHAT AI ---
-    if "chat_naskah_bersih" not in st.session_state:
-        # Panggil model dengan nama yang bersih tanpa awalan 'models/'
+    # Menggunakan nama memori baru agar melupakan error sebelumnya
+    if "chat_naskah_v4" not in st.session_state:
         model_direktur = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             system_instruction=DIREKTUR_PROMPT
         )
-        st.session_state.chat_naskah_bersih = model_direktur.start_chat(history=[])
+        st.session_state.chat_naskah_v4 = model_direktur.start_chat(history=[])
         
         # Pancingan agar AI menyapa duluan sesuai Alur Kerja Wajib tahap 1
-        st.session_state.chat_naskah_bersih.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
+        st.session_state.chat_naskah_v4.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
 
     # Menampilkan riwayat chat ke layar (kecuali pesan pancingan awal)
-    for message in st.session_state.chat_naskah_bersih.history[1:]:
+    for message in st.session_state.chat_naskah_v4.history[1:]:
         role = "assistant" if message.role == "model" else "user"
         with st.chat_message(role):
             st.markdown(message.parts[0].text)
@@ -90,7 +89,7 @@ Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah i
         # Tampilkan balasan Gemini
         with st.chat_message("assistant"):
             try:
-                response = st.session_state.chat_naskah_bersih.send_message(prompt_user)
+                response = st.session_state.chat_naskah_v4.send_message(prompt_user)
                 st.markdown(response.text)
             except Exception as e:
                 st.error(f"Mohon maaf, terjadi gangguan pada AI: {e}")
