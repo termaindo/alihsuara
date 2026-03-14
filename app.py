@@ -1,158 +1,48 @@
 import streamlit as st
-import google.generativeai as genai
-from google.cloud import texttospeech
-from google.oauth2 import service_account
-import json
-import os
+import naskah
+import vo
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Studio Alih Suara Pro", page_icon="🎙️", layout="wide")
 
-# --- PROMPT DIREKTUR KREATIF ---
-DIREKTUR_PROMPT = """
-[PERAN & PERSONA]
-Kamu adalah Direktur Kreatif Script Alih Suara yang puitis namun teknis. Tugasmu adalah membantu pengguna menyusun naskah Text-to-Speech (TTS) yang memiliki "jiwa". Kamu menggunakan analogi untuk menjelaskan suasana dan sangat presisi dalam menghitung durasi.
+# Inisialisasi state navigasi
+if 'menu_aktif' not in st.session_state:
+    st.session_state.menu_aktif = "Home"
 
-[ALUR KERJA WAJIB]
-1. Tahap Wawancara (Discovery)
-Jangan langsung menulis naskah. Sapa pengguna dan mintalah detail berikut:
-- Durasi: Berapa detik targetnya?
-- Audiens: Siapa pendengarnya? (Gen Z, Profesional, Anak-anak, dsb).
-- Vibe/Emosi: Perasaan apa yang ingin dibangun?
-- Konteks: Untuk video (tanyakan momen visual kunci) atau audio mandiri?
+# --- SIDEBAR NAVIGASI ---
+st.sidebar.title("🎙️ Navigasi Studio")
+pilihan = st.sidebar.radio(
+    "Pilih Ruangan:", 
+    ["Home", "1. Ruang Naskah", "2. Studio Rekaman"],
+    index=["Home", "1. Ruang Naskah", "2. Studio Rekaman"].index(st.session_state.menu_aktif)
+)
 
-2. Tahap Opsi Nuansa (Creative Pitch)
-Sajikan 2-3 Pilihan Nuansa dalam tabel:
-- Nuansa: Nama gaya (misal: "Zen", "Energetik", "Informatif", "Rileks").
-- Visualisasi Suasana: Analogi puitis (misal: "Seperti embun di pagi hari").
-- Rangkuman Alur: Penjelasan porsi waktu Hook-Heart-Action sesuai audiens.
+# Sinkronisasi pilihan sidebar dengan state
+if st.session_state.menu_aktif != pilihan:
+    st.session_state.menu_aktif = pilihan
+    st.rerun()
 
-3. Tahap Eksekusi (Final Script)
-Setelah pengguna memilih nuansa, sajikan output dengan struktur:
-### 🎙️ [Judul Proyek]
-- Tabel Metadata: Target Durasi, Laju Bicara, dan Jumlah Kata Aktual.
-- Tabel Identitas Suara: Persona & Suasana.
-- Tabel Perbandingan Ritme: Bandingkan versi Tight Sync (Pas) dan Breathable (Longgar).
-- Blok Kode Naskah: Gunakan tag [Jeda: 0.0s] dan (Instruksi Emosi).
-- Catatan Sutradara: Rekomendasi Pitch/Speed TTS dan Atmosfer Audio (Musik/SFX).
-
-[LOGIKA TEKNIS DURASI]
-Gunakan referensi berikut untuk menghitung batas kata:
-1) Bahasa Indonesia: 
-a) Gaya cepat: 2,6 - 2,8 wps
-b) Gaya normal: 2.1 - 2.3 wps
-2) Bahasa Inggris:
-a) Gaya cepat: 2.9 - 3.2 wps
-b) Gaya normal: 2.4 - 2.6 wps
-(wps = words per second).
-
-[GAYA BAHASA]
-Gunakan bahasa yang inspiratif. Hindari kata-kata membosankan. Gunakan istilah industri seperti "pacing", "intonasi", dan "vocal fry" jika relevan, dan beri penjelasan sederhana dan singkat untuk istilah teknis tersebut, supaya bisa dipahami juga oleh orang awam pemakai jasamu.
-"""
-
-# --- SETUP KREDENSIAL (ISOLASI JALUR REST & GRPC) ---
-try:
-    # Bersihkan memori lingkungan
-    if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
-        del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-
-    gemini_key = st.secrets["GEMINI_API_KEY"]
-    gcp_creds = st.secrets["GCP_CREDENTIALS"]
-
-    # 1. JALUR KHUSUS GEMINI (KUNCI PERBAIKAN)
-    # Memaksa Gemini menggunakan jalur 'rest' (HTTP) agar tidak bertabrakan dengan gRPC milik TTS
-    genai.configure(api_key=gemini_key, transport="rest")
-
-    # 2. JALUR KHUSUS GOOGLE CLOUD TTS
-    if isinstance(gcp_creds, str):
-        gcp_creds_dict = json.loads(gcp_creds)
-    else:
-        gcp_creds_dict = dict(gcp_creds)
-        
-    tts_credentials = service_account.Credentials.from_service_account_info(gcp_creds_dict)
-
-except Exception as e:
-    st.error(f"Error Kredensial. Cek Secrets Anda. Detail: {e}")
-    st.stop()
-
-# --- TAMPILAN ANTARMUKA ---
-st.title("🎙️ Studio Alih Suara Pro")
-st.markdown("Bersama Direktur Kreatif Naskah & Studio Rekaman Suara Pro")
-
-# Membuat 2 Tab
-tab1, tab2 = st.tabs(["📝 Ruang 1: Rapat Naskah (Chat)", "🎧 Ruang 2: Studio Rekaman"])
-
-# ==========================================
-# TAB 1: RUANG RAPAT DIREKTUR KREATIF
-# ==========================================
-with tab1:
-    st.info("💡 **Tips:** Jawab pertanyaan Direktur Kreatif di bawah ini untuk memulai proses kreatif.")
+# --- ROUTER LOGIC ---
+if st.session_state.menu_aktif == "Home":
+    st.title("🎙️ Selamat Datang di Studio Alih Suara Pro")
+    st.markdown("Sesuai dengan arsitektur modular, aplikasi ini dibagi menjadi dua ruangan untuk **mencegah konflik sistem kredensial**.")
+    st.divider()
     
-    # Menggunakan v4 untuk mereset memori Streamlit dari error gRPC sebelumnya
-    if "chat_session_v4" not in st.session_state:
-        model_direktur = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=DIREKTUR_PROMPT
-        )
-        # Memulai chat baru
-        st.session_state.chat_session_v4 = model_direktur.start_chat(history=[])
-        
-        # Pancingan agar Direktur menyapa duluan
-        st.session_state.chat_session_v4.send_message("Halo Direktur, saya siap membuat naskah baru. Tolong mulai tahap wawancaranya.")
-    
-    # Menampilkan riwayat chat
-    for message in st.session_state.chat_session_v4.history[1:]: # Skip pesan pancingan sistem
-        role = "assistant" if message.role == "model" else "user"
-        with st.chat_message(role):
-            st.markdown(message.parts[0].text)
-
-    # Kotak Input Chat
-    if prompt_user := st.chat_input("Ketik di sini, apa naskah yang mau Anda produksi?"):
-        # Tampilkan chat user
-        with st.chat_message("user"):
-            st.markdown(prompt_user)
-        # Kirim ke Gemini dan tampilkan balasan
-        with st.chat_message("assistant"):
-            try:
-                response = st.session_state.chat_session_v4.send_message(prompt_user)
-                st.markdown(response.text)
-            except Exception as e:
-                st.error(f"Gemini Error: {e}")
-
-# ==========================================
-# TAB 2: STUDIO REKAMAN
-# ==========================================
-with tab2:
-    st.write("Silakan *copy* blok naskah final dari Ruang 1, dan *paste* di sini untuk diubah menjadi suara.")
-    
-    user_input = st.text_area("Masukkan Naskah Final:", height=200)
-
     col1, col2 = st.columns(2)
     with col1:
-        gender = st.selectbox("Pilih Jenis Suara:", ["Wanita (Neural2-A)", "Pria (Neural2-B)"])
+        st.info("### 📝 Ruang 1: Pembuatan Naskah\nBerdiskusi dengan AI Direktur Kreatif untuk menyusun naskah yang berjiwa.")
+        if st.button("➡️ Masuk ke Ruang Naskah", use_container_width=True):
+            st.session_state.menu_aktif = "1. Ruang Naskah"
+            st.rerun()
+            
     with col2:
-        speed = st.slider("Kecepatan Bicara:", 0.5, 1.5, 1.0, 0.1)
+        st.success("### 🎧 Ruang 2: Studio Rekaman\nMengubah naskah final menjadi suara natural Neural2.")
+        if st.button("➡️ Masuk ke Studio Rekaman", use_container_width=True):
+            st.session_state.menu_aktif = "2. Studio Rekaman"
+            st.rerun()
 
-    if st.button("🔥 Buat Suara Sekarang", use_container_width=True):
-        if user_input:
-            try:
-                with st.spinner("Google Cloud sedang memproduksi suara..."):
-                    # TTS tetap aman menggunakan gRPC secara default
-                    client = texttospeech.TextToSpeechClient(credentials=tts_credentials)
-                    
-                    naskah_bersih = user_input.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
-                    
-                    synthesis_input = texttospeech.SynthesisInput(text=naskah_bersih)
-                    voice_name = "id-ID-Neural2-A" if "Wanita" in gender else "id-ID-Neural2-B"
-                    
-                    voice = texttospeech.VoiceSelectionParams(language_code="id-ID", name=voice_name)
-                    audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3, speaking_rate=speed)
+elif st.session_state.menu_aktif == "1. Ruang Naskah":
+    naskah.run()
 
-                    response_audio = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
-
-                    st.success("Berhasil! Silakan dengarkan:")
-                    st.audio(response_audio.audio_content, format="audio/mp3")
-            except Exception as e:
-                st.error(f"Gagal merekam: {e}")
-        else:
-            st.warning("Mohon tempelkan naskahnya dulu ya.")
+elif st.session_state.menu_aktif == "2. Studio Rekaman":
+    vo.run()
