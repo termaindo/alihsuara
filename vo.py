@@ -21,11 +21,11 @@ def run():
         st.stop()
 
     st.title("🎧 Ruang 2: Studio Rekaman Pro")
+    st.info("💡 **Informasi:** Studio ini mendukung mode **SSML**. AI di Ruang 1 telah menyisipkan kode khusus agar suara mesin memiliki jeda napas dan penekanan nada yang natural.")
     
     # --- 2. LOGIKA PENARIKAN DATA OTOMATIS ---
-    # Inisialisasi variabel penampung
     instruksi_rekaman = ""
-    naskah_untuk_kotak = ""
+    naskah_ssml = ""
     
     # Cek apakah ada data dari Ruang 1 (naskah.py)
     if "hasil_naskah" in st.session_state and st.session_state.hasil_naskah:
@@ -39,39 +39,38 @@ def run():
         except:
             instruksi_rekaman = ""
 
-        # B. Ekstraksi Naskah Final (Mencari teks di dalam blok kode ```)
-        bt = "```" # Menghindari error tampilan chat dengan variabel
-        pattern = rf"{bt}(?:text|markdown)?\n(.*?){bt}"
+        # B. Ekstraksi Naskah SSML (Mencari teks di dalam blok kode ```)
+        # Menggunakan regex yang aman agar tidak memutus tampilan editor
+        bt = "```" 
+        pattern = rf"{bt}(?:text|markdown|xml)?\n(.*?){bt}"
         match_naskah = re.search(pattern, raw_text, re.DOTALL | re.IGNORECASE)
         
         if match_naskah:
-            naskah_untuk_kotak = match_naskah.group(1).strip()
-            st.success("✅ Berhasil menarik naskah otomatis dari Ruang 1!")
+            naskah_ssml = match_naskah.group(1).strip()
+            st.success("✅ Naskah SSML berhasil ditarik otomatis dari Ruang 1!")
         else:
-            # Jika tidak ada blok kode, ambil seluruh teks sebagai fallback
-            naskah_untuk_kotak = raw_text
-            st.info("💡 Naskah ditarik secara utuh (tanpa pemisahan otomatis).")
+            naskah_ssml = raw_text
+            st.info("💡 Naskah ditarik tanpa filter blok kode. Silakan periksa formatnya.")
     else:
         st.info("💡 Belum ada naskah dari Ruang 1. Silakan buat naskah dulu atau ketik manual di bawah.")
 
     # --- 3. TAMPILAN ARAHAN & KOTAK KERJA ---
-    # Tampilkan Arahan Rekaman jika ditemukan
     if instruksi_rekaman:
-        with st.expander("📖 Lihat Arahan Rekaman (Tone & Kecepatan)", expanded=True):
+        with st.expander("📖 Lihat Panduan Suara (Tone & Karakter)", expanded=True):
             st.markdown(instruksi_rekaman)
 
-    # Kotak Teks Utama
+    # Kotak Teks Utama (Mendukung Input SSML)
     user_input = st.text_area(
-        "Edit Naskah Final di sini:", 
-        value=naskah_untuk_kotak, 
-        height=300,
-        help="Naskah di dalam kotak ini yang akan diubah menjadi suara."
+        "Kotak Kerja Naskah (Format SSML):", 
+        value=naskah_ssml, 
+        height=350,
+        help="Naskah dengan tag <speak> akan diproses secara natural."
     )
 
     # Panel Kontrol Mesin
     col1, col2, col3 = st.columns(3)
     with col1:
-        gender = st.selectbox(
+        voice_opt = st.selectbox(
             "Pilih Karakter Suara:", 
             ["Wanita (Wavenet-A)", "Pria (Wavenet-B)", "Pria (Wavenet-C)", "Wanita (Wavenet-D)"]
         )
@@ -81,18 +80,19 @@ def run():
         pitch = st.slider("Nada Suara (Pitch):", -10.0, 10.0, 0.0, 0.5)
 
     # --- 4. PROSES PRODUKSI AUDIO ---
-    if st.button("🔥 Produksi Suara Sekarang", use_container_width=True):
+    if st.button("🔥 Produksi Suara Pro Sekarang", use_container_width=True):
         if user_input:
+            # Pastikan teks diawali <speak> jika ingin menggunakan SSML
+            final_text = user_input.strip()
+            if not final_text.startswith("<speak>"):
+                final_text = f"<speak>{final_text}</speak>"
+
             try:
-                with st.spinner("Mesin Google Wavenet sedang memproduksi suara..."):
+                with st.spinner("Mesin sedang menerjemahkan kode SSML menjadi suara..."):
                     client = texttospeech.TextToSpeechClient(credentials=tts_credentials)
                     
-                    # Pembersihan teks dari instruksi non-verbal agar tidak dibaca robot
-                    # Menghapus apapun di dalam kurung ( ) dan [ ]
-                    clean_text = re.sub(r'\[.*?\]', '', user_input)
-                    clean_text = re.sub(r'\(.*?\)', '', clean_text)
-                    
-                    synthesis_input = texttospeech.SynthesisInput(text=clean_text.strip())
+                    # KRUSIAL: Menggunakan parameter 'ssml' agar tag jeda dipatuhi
+                    synthesis_input = texttospeech.SynthesisInput(ssml=final_text)
                     
                     # Mapping Suara
                     voice_map = {
@@ -104,7 +104,7 @@ def run():
                     
                     voice = texttospeech.VoiceSelectionParams(
                         language_code="id-ID", 
-                        name=voice_map.get(gender, "id-ID-Wavenet-A")
+                        name=voice_map.get(voice_opt, "id-ID-Wavenet-A")
                     )
                     
                     audio_config = texttospeech.AudioConfig(
@@ -119,9 +119,10 @@ def run():
                         audio_config=audio_config
                     )
 
-                    st.success("✅ Selesai! Klik tombol putar di bawah:")
+                    st.success("✅ Berhasil! Silakan dengarkan perbedaannya:")
                     st.audio(response.audio_content, format="audio/mp3")
+                    
             except Exception as e:
-                st.error(f"Gagal memproduksi suara: {e}")
+                st.error(f"Gagal memproduksi suara. Periksa apakah format naskah SSML sudah benar. Detail: {e}")
         else:
-            st.warning("Silakan isi atau tarik naskah terlebih dahulu.")
+            st.warning("Silakan isi naskah terlebih dahulu.")
