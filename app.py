@@ -6,7 +6,6 @@ import vo
 st.set_page_config(page_title="Studio Alih Suara Pro", page_icon="🎙️", layout="wide")
 
 # --- INISIALISASI STATE ---
-# Menyimpan nama pengguna agar tidak ditanyakan berulang kali
 if 'nama_pengguna' not in st.session_state:
     st.session_state.nama_pengguna = ""
 if 'menu_aktif' not in st.session_state:
@@ -53,17 +52,15 @@ st.divider()
 # --- ROUTER LOGIC ---
 if st.session_state.menu_aktif == "Home":
     st.subheader(f"Selamat Datang di Lobi Studio, {st.session_state.nama_pengguna}!")
-    st.write("Untuk memudahkan alur kerja Anda, aplikasi ini dibagi menjadi dua ruangan utama. Silakan pilih ruangan dan Direktur Kreatif yang Anda perlukan:")
+    st.write("Untuk memastikan sistem berjalan tanpa gangguan memori, aplikasi ini dibagi menjadi dua ruangan. Silakan pilih ruangan yang Anda perlukan:")
     
     st.info("""
-    **📝 1. Ruang Naskah (Modul Penyusun Naskah)**
-    Ruangan ini dikhususkan untuk **Direktur Kreatif Penyusun Naskah**. Di sini, Anda akan dibimbing selangkah demi selangkah menyusun naskah *Voice Over* (VO) yang berjiwa, natural, dan sesuai target audiens. Hasil akhirnya adalah naskah matang yang langsung siap disalin.
+    **📝 1. Ruang Naskah (Direktur Kreatif Penyusun Naskah)**
+    Di sini Anda akan dibimbing selangkah demi selangkah menyusun naskah *Voice Over* (VO) yang berjiwa dan sesuai target audiens. Hasil akhirnya adalah naskah matang yang langsung siap disalin (di-copy).
     
-    **🎧 2. Studio Rekaman (Modul Perekaman Suara)**
-    Ruangan ini adalah wilayah **Direktur Kreatif Perekaman Suara**. Jika Anda sudah memiliki teks naskah final (baik yang dibuat dari Ruang 1 maupun naskah Anda sendiri), silakan bawa ke sini untuk diubah menjadi audio berkualitas tinggi menggunakan teknologi kecerdasan buatan.
+    **🎧 2. Studio Rekaman (Direktur Kreatif Perekaman Suara)**
+    Jika Anda sudah memiliki teks naskah final yang siap baca, silakan bawa ke sini. Mesin AI Google Cloud akan mengubah tulisan Anda menjadi audio bersuara manusia yang natural.
     """)
-    
-    st.markdown("💡 **Petunjuk:** Silakan klik tombol navigasi di atas untuk mulai bekerja!")
 
 elif st.session_state.menu_aktif == "1. Ruang Naskah":
     naskah.run()
