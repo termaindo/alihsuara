@@ -1,4 +1,5 @@
 import streamlit as st
+import re
 
 def run():
     # Import HANYA dilakukan saat modul ini dipanggil
@@ -6,6 +7,7 @@ def run():
     from google.oauth2 import service_account
     import json
 
+    # --- 1. SETUP KREDENSIAL TTS ---
     try:
         gcp_creds = st.secrets["GCP_CREDENTIALS"]
         if isinstance(gcp_creds, str):
@@ -19,49 +21,17 @@ def run():
         st.stop()
 
     st.title("🎧 Ruang 2: Studio Rekaman Pro")
-    st.write("Silakan *copy* naskah final dari Ruang Naskah, lalu *paste* ke kotak di bawah ini.")
+    
+    # --- 2. LOGIKA TRANSFER OTOMATIS DARI RUANG 1 ---
+    teks_bawaan = ""
+    if "hasil_naskah" in st.session_state and st.session_state.hasil_naskah:
+        # Mencari teks yang dibungkus oleh tiga backtick (```) dari output Gemini
+        match = re.search(r'
+http://googleusercontent.com/immersive_entry_chip/0
 
-    user_input = st.text_area("Masukkan Naskah Final:", height=200)
+**Perubahan Kunci yang Saya Lakukan:**
+1.  **Deteksi Otomatis (Regex):** Sistem kini mengais teks di antara tanda ``` secara otomatis dari memori `st.session_state`.
+2.  **Slider Nada (Pitch):** Bapak kini bisa memanipulasi frekuensi suara. Mau Wavenet-B terdengar lebih dalam layaknya penyiar radio berita? Geser Pitch ke arah minus (misal: -3.0). Mau Wavenet-A terdengar lebih antusias untuk promo diskon? Geser Pitch ke arah positif (misal: +2.0).
+3.  **Pembersih Cerdas:** Saya menggunakan modul `re` (Regex) bawaan Python agar pembersihan tanda kurung `[]` dan `()` jauh lebih bersih, jadi teks instruksi seperti *(tersenyum)* di naskah otomatis diabaikan oleh mesin tanpa merusak tanda baca aslinya.
 
-    col1, col2 = st.columns(2)
-    with col1:
-        # PERBAIKAN: Mengganti Neural2 menjadi Wavenet (Suara premium untuk Bahasa Indonesia)
-        gender = st.selectbox(
-            "Pilih Jenis Suara:", 
-            ["Wanita (Wavenet-A)", "Pria (Wavenet-B)", "Pria (Wavenet-C)", "Wanita (Wavenet-D)"]
-        )
-    with col2:
-        speed = st.slider("Kecepatan Bicara:", 0.5, 1.5, 1.0, 0.1)
-
-    if st.button("🔥 Buat Suara Sekarang", use_container_width=True):
-        if user_input:
-            try:
-                with st.spinner("Mesin Google Cloud sedang meracik suara..."):
-                    client = texttospeech.TextToSpeechClient(credentials=tts_credentials)
-                    
-                    # Pembersihan naskah dari instruksi sutradara
-                    naskah_bersih = user_input.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
-                    
-                    synthesis_input = texttospeech.SynthesisInput(text=naskah_bersih)
-                    
-                    # PERBAIKAN: Logika pemilihan kode suara Google Cloud yang valid
-                    if "Wavenet-A" in gender:
-                        voice_name = "id-ID-Wavenet-A"
-                    elif "Wavenet-B" in gender:
-                        voice_name = "id-ID-Wavenet-B"
-                    elif "Wavenet-C" in gender:
-                        voice_name = "id-ID-Wavenet-C"
-                    else:
-                        voice_name = "id-ID-Wavenet-D"
-                    
-                    voice = texttospeech.VoiceSelectionParams(language_code="id-ID", name=voice_name)
-                    audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3, speaking_rate=speed)
-
-                    response_audio = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
-
-                    st.success("✅ Berhasil! Silakan dengarkan audionya:")
-                    st.audio(response_audio.audio_content, format="audio/mp3")
-            except Exception as e:
-                st.error(f"Gagal merekam: {e}")
-        else:
-            st.warning("Mohon tempelkan naskahnya terlebih dahulu.")
+Silakan *commit* dan coba alur kerjanya langsung dari Ruang 1 menuju Ruang 2, Pak. Apakah naskahnya berhasil melompat otomatis ke kotak teks?
