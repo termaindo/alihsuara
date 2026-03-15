@@ -6,29 +6,30 @@ def run():
     # --- 1. KARANTINA MEMORI SISTEM ---
     os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
-    # --- 2. PROMPT DIREKTUR KREATIF (VERSI SSML ADVANCED) ---
+    # --- 2. PROMPT DIREKTUR KREATIF (VERSI NATURAL & AWAM) ---
     DIREKTUR_PROMPT = """
 [PERAN]
-Kamu adalah Direktur Kreatif Script Alih Suara. Kamu ahli dalam menyusun naskah yang menggunakan SSML (Speech Synthesis Markup Language) agar suara AI Google Wavenet terdengar natural, berjiwa, dan tidak kaku.
+Kamu adalah Direktur Kreatif Script Alih Suara. Tugasmu adalah menyusun naskah Text-to-Speech (TTS) yang terdengar natural, berjiwa, dan tidak kaku JIKA dibaca oleh mesin AI.
 
 [ALUR KERJA]
-Berdasarkan data wawancara, susunlah output sebagai berikut:
+Berdasarkan data wawancara pengguna, susunlah output sebagai berikut:
 
-1. 💡 Alasan Kreatif:
-Jelaskan dengan bahasa ramah kenapa naskah ini dibuat seperti ini.
+1. 💡 Penjelasan Singkat:
+Jelaskan dengan bahasa yang SANGAT SEDERHANA (bahasa awam yang ramah) mengapa naskah ini dibuat seperti ini. Hindari sama sekali istilah teknis industri, kode pemrograman, atau kata-kata rumit.
 
 2. 🎛️ Arahan Rekaman:
-Berikan panduan tone dan suasana.
+Berikan panduan sederhana mengenai tone dan suasana (misal: "Gunakan suara Wanita dengan kecepatan sedang").
 
-3. 🎙️ Naskah Final (Format SSML):
-Kamu WAJIB membungkus naskah di dalam kotak kode (markdown code block).
-Gunakan tag SSML untuk mengatur ritme. Contoh penggunaan yang harus kamu ikuti:
-- Gunakan <break time="400ms"/> untuk jeda napas antar kalimat.
-- Gunakan <prosody pitch="+2st" rate="1.1">teks</prosody> untuk kalimat yang antusias/promo.
-- Gunakan <prosody pitch="-1st" rate="0.9">teks</prosody> untuk kalimat yang serius/berwibawa.
-- Seluruh naskah harus diawali dengan <speak> dan diakhiri dengan </speak>.
+3. 🎙️ Naskah Final:
+Kamu WAJIB membungkus naskah di dalam kotak kode (markdown code block) dengan format ```text ... ```.
+PENTING UNTUK RITME MESIN:
+- DILARANG menggunakan kode SSML, tanda kurung (), atau kurung siku [] yang berisi instruksi emosi di dalam naskah. Naskah harus berisi murni kata-kata yang akan diucapkan mesin.
+- Gunakan TANDA BACA biasa secara cerdas untuk mengatur ritme mesin pembaca.
+- Gunakan tanda koma (,) untuk jeda napas pendek.
+- Gunakan tanda titik (.) untuk jeda napas panjang atau di akhir kalimat.
+- Tuliskan angka menjadi kata-kata jika perlu (misal "Rp 10.000" menjadi "sepuluh ribu rupiah") agar mesin tidak salah baca.
 
-PENTING: Pastikan teks di dalam SSML tetap bersih dan enak didengar.
+PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan siap dibaca langsung oleh mesin rekaman.
     """
 
     # --- 3. SETUP KREDENSIAL GEMINI ---
@@ -202,7 +203,7 @@ PENTING: Pastikan teks di dalam SSML tetap bersih dan enak didengar.
                 st.session_state.wizard_step = 4
                 st.rerun()
         with col2:
-            if st.button("✨ Hasilkan Naskah Berjiwa (SSML)", type="primary"):
+            if st.button("✨ Hasilkan Naskah Berjiwa", type="primary"):
                 if jawaban_konteks and jawaban_konteks != "Pilih...":
                     st.session_state.jawaban["konteks"] = jawaban_konteks
                     st.session_state.jawaban["produk"] = edit_produk
@@ -220,10 +221,10 @@ PENTING: Pastikan teks di dalam SSML tetap bersih dan enak didengar.
     # LANGKAH 6: PROSES AI & HASIL
     # ==========================================
     elif st.session_state.wizard_step == 6:
-        st.subheader("🎬 Hasil Naskah Pro (Format SSML)")
+        st.subheader("🎬 Hasil Naskah Pro")
 
         if not st.session_state.hasil_naskah:
-            with st.spinner("Direktur sedang menyusun naskah dengan teknik SSML..."):
+            with st.spinner("Direktur sedang menyusun naskah yang natural dan berjiwa..."):
                 try:
                     model_direktur = genai.GenerativeModel(
                         model_name="gemini-2.5-flash",
@@ -232,7 +233,7 @@ PENTING: Pastikan teks di dalam SSML tetap bersih dan enak didengar.
                     
                     # Menyusun prompt yang lebih rapi ke Gemini
                     prompt_final = f"""
-                    Tolong buatkan naskah SSML berdasarkan panduan berikut:
+                    Tolong buatkan naskah berdasarkan panduan berikut:
                     - Produk/Jasa: {st.session_state.jawaban['produk']}
                     - Poin Penting/Keunggulan: {st.session_state.jawaban['poin_penting']}
                     - Durasi Target: {st.session_state.jawaban['durasi']}
@@ -254,6 +255,10 @@ PENTING: Pastikan teks di dalam SSML tetap bersih dan enak didengar.
             st.markdown(st.session_state.hasil_naskah)
 
             st.divider()
+            
+            # Notifikasi yang lebih ramah dan menenangkan bagi orang awam
+            st.info("💡 **Catatan:** Naskah di dalam kotak hitam di atas sudah dirancang khusus menggunakan susunan kata dan tanda baca (koma dan titik) agar dibaca secara natural oleh mesin. Sistem kami akan otomatis menarik naskah ini saat Anda menekan tombol pindah ke Studio Rekaman di bawah ini.")
+            
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("🔄 Buat Naskah Baru"):
