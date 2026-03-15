@@ -20,11 +20,20 @@ def run():
         st.error(f"Kredensial Google Cloud bermasalah: {e}")
         st.stop()
 
+    # --- INJEKSI CSS UNTUK MENYEMBUNYIKAN "Press Ctrl+Enter" ---
+    # Ini akan membuat tampilan lebih bersih, terutama untuk pengguna HP
+    st.markdown("""
+        <style>
+            div[data-testid="InputInstructions"] {
+                display: none !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.title("🎧 Ruang 2: Studio Rekaman Pro")
     st.info("💡 **Informasi:** Studio ini memakai dukungan AI untuk membaca naskah yang dibuat di Ruang 1. Anda memiliki kendali penuh untuk mengedit naskah dan memodifikasi suara mesin di sini.")
     
     # --- 2. LOGIKA PENARIKAN & PENYIMPANAN DATA OTOMATIS ---
-    # Memastikan variabel memori lokal tersedia untuk menyimpan hasil editan pengguna
     if "naskah_vo" not in st.session_state:
         st.session_state.naskah_vo = ""
     if "last_raw_naskah" not in st.session_state:
@@ -32,10 +41,9 @@ def run():
 
     instruksi_rekaman = ""
     
-    # Cek apakah ada data mentah dari Ruang 1 (naskah.py)
     raw_text = st.session_state.get("hasil_naskah", "")
     if raw_text:
-        # A. Ekstraksi Arahan Rekaman (Mencari teks antara 🎛️ dan 🎙️)
+        # A. Ekstraksi Arahan Rekaman
         try:
             search_arahan = re.search(r"🎛️ Arahan Rekaman:(.*?)🎙️", raw_text, re.DOTALL | re.IGNORECASE)
             if search_arahan:
@@ -43,17 +51,15 @@ def run():
         except:
             pass
 
-        # B. Deteksi apakah ini naskah BARU dari Ruang 1
+        # B. Deteksi apakah ini naskah BARU
         if raw_text != st.session_state.last_raw_naskah:
-            st.session_state.last_raw_naskah = raw_text # Catat naskah mentah terbaru
+            st.session_state.last_raw_naskah = raw_text 
             
-            # Ekstraksi Naskah Final di dalam blok kode ```
             bt = "```" 
             pattern = rf"{bt}(?:text|markdown)?\n(.*?){bt}"
             match_naskah = re.search(pattern, raw_text, re.DOTALL | re.IGNORECASE)
             
             if match_naskah:
-                # Timpa naskah di Studio dengan yang baru ditarik
                 st.session_state.naskah_vo = match_naskah.group(1).strip()
                 st.success("✅ Naskah baru berhasil ditarik otomatis dari Ruang 1!")
             else:
@@ -68,22 +74,22 @@ def run():
         with st.expander("📖 Lihat Panduan Suara dari Direktur Kreatif", expanded=True):
             st.markdown(instruksi_rekaman)
 
-    # Contekan Teknis untuk mengarahkan pengguna awam
+    # Contekan Teknis (Diperbarui Urutannya: Laju lalu Nada)
     with st.expander("💡 CONTEKAN: Cara Mengatur Mesin agar Lebih Natural", expanded=True):
         st.markdown("""
         Jika Anda bingung bagaimana menerapkan arahan di atas ke dalam pengaturan mesin, gunakan rumus ini:
         
-        * 🔥 **Energetik / Promo:** Nada (Pitch) **+1.0 s/d +3.0** | Laju (Speed) **1.1 s/d 1.2**
-        * 👔 **Berwibawa / Serius:** Nada (Pitch) **-2.0 s/d -4.0** | Laju (Speed) **0.8 s/d 0.9**
-        * ☕ **Ramah / Santai:** Nada (Pitch) **+0.5 s/d +1.5** | Laju (Speed) **0.9 s/d 1.1**
+        * 🔥 **Energetik / Promo:** Laju (Speed) **1.1 s/d 1.2** | Nada (Pitch) **+1.0 s/d +3.0**
+        * 👔 **Berwibawa / Serius:** Laju (Speed) **0.8 s/d 0.9** | Nada (Pitch) **-2.0 s/d -4.0**
+        * ☕ **Ramah / Santai:** Laju (Speed) **0.9 s/d 1.1** | Nada (Pitch) **+0.5 s/d +1.5**
         
         **Trik Mengatur Napas AI (Edit langsung di kotak bawah!):**
         * Jika mesin bicara terlalu kaku/terpotong: **HAPUS tanda koma (,)** di area tersebut.
         * Jika mesin bicara terlalu cepat tanpa jeda: **TAMBAHKAN tanda koma (,)** atau ganti menjadi titik (.) untuk napas yang lebih panjang.
         """)
 
-    # Kotak Teks Utama (Bisa diketik dan diedit langsung oleh pengguna)
-    st.markdown("**📱 PENGGUNA HP:** Abaikan tulisan *'Press Ctrl+Enter'* di dalam kotak. Cukup ketuk di area luar kotak atau langsung klik tombol **Produksi Suara** setelah selesai mengedit naskah.")
+    # Kotak Teks Utama (Tanpa tulisan Ctrl+Enter yang mengganggu)
+    st.markdown("**📱 PENGGUNA HP:** Silakan ketuk area teks di bawah ini untuk mengedit. Jika sudah selesai, langsung saja klik tombol **Produksi Suara** di bagian bawah.")
     user_input = st.text_area(
         "📝 Kotak Kerja Naskah (Anda BEBAS mengetik, menghapus, atau mengubah tanda baca di sini):", 
         value=st.session_state.naskah_vo, 
@@ -91,19 +97,19 @@ def run():
         help="Semua perubahan yang Anda ketik di sini akan disimpan otomatis saat Anda menekan tombol produksi."
     )
     
-    # Simpan hasil editan pengguna kembali ke session_state agar tidak hilang
     st.session_state.naskah_vo = user_input
 
     # Panel Kontrol Mesin
     col1, col2, col3 = st.columns(3)
     with col1:
+        # Urutan sudah dirapikan: Wanita A, Wanita B, Pria C, Pria D
         voice_opt = st.selectbox(
             "Pilih Karakter Suara:", 
             [
-                "Wanita (Wavenet-D)", 
                 "Wanita (Wavenet-A)", 
-                "Pria (Wavenet-B)", 
-                "Pria (Wavenet-C)"
+                "Wanita (Wavenet-B)", 
+                "Pria (Wavenet-C)", 
+                "Pria (Wavenet-D)"
             ]
         )
     with col2:
@@ -118,23 +124,23 @@ def run():
                 with st.spinner("Mesin sedang meracik frekuensi suara..."):
                     client = texttospeech.TextToSpeechClient(credentials=tts_credentials)
                     
-                    # Pembersihan teks dari instruksi non-verbal (berjaga-jaga jika pengguna mengetiknya)
                     clean_text = re.sub(r'\[.*?\]', '', user_input)
                     clean_text = re.sub(r'\(.*?\)', '', clean_text)
                     
                     synthesis_input = texttospeech.SynthesisInput(text=clean_text.strip())
                     
-                    # Mapping Suara yang sudah diurutkan sesuai dropdown
+                    # Pemetaan Suara Khusus (Menyelaraskan Label UI dengan Kode Asli Google)
+                    # Di Google: A & D = Wanita, B & C = Pria
                     voice_map = {
-                        "Wanita (Wavenet-D)": "id-ID-Wavenet-D",
-                        "Wanita (Wavenet-A)": "id-ID-Wavenet-A",
-                        "Pria (Wavenet-B)": "id-ID-Wavenet-B",
-                        "Pria (Wavenet-C)": "id-ID-Wavenet-C"
+                        "Wanita (Wavenet-A)": "id-ID-Wavenet-A", # Google Wanita 1
+                        "Wanita (Wavenet-B)": "id-ID-Wavenet-D", # Google Wanita 2 (D)
+                        "Pria (Wavenet-C)": "id-ID-Wavenet-B",   # Google Pria 1 (B)
+                        "Pria (Wavenet-D)": "id-ID-Wavenet-C"    # Google Pria 2 (C)
                     }
                     
                     voice = texttospeech.VoiceSelectionParams(
                         language_code="id-ID", 
-                        name=voice_map.get(voice_opt, "id-ID-Wavenet-D")
+                        name=voice_map.get(voice_opt, "id-ID-Wavenet-A")
                     )
                     
                     audio_config = texttospeech.AudioConfig(
