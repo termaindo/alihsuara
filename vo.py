@@ -158,6 +158,16 @@ def run():
                     st.success("✅ Berhasil! Silakan dengarkan hasilnya:")
                     st.audio(response.audio_content, format="audio/mp3")
                     
+                    # --- TOMBOL DOWNLOAD EKSPLISIT ---
+                    st.download_button(
+                        label="⬇️ Download Hasil Audio (MP3)",
+                        data=response.audio_content,
+                        file_name="hasil_rekaman_studio.mp3",
+                        mime="audio/mp3",
+                        use_container_width=True,
+                        type="primary" # Membuat tombol lebih mencolok
+                    )
+                    
             except Exception as e:
                 st.error(f"Gagal memproduksi suara. Detail: {e}")
         else:
