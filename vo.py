@@ -37,7 +37,8 @@ def run():
         tts_credentials = service_account.Credentials.from_service_account_info(gcp_creds_dict)
         
         # Otorisasi Khusus ke Google Drive
-        SCOPES = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.metadata.readonly']
+        # KUNCI SOLUSI 403: Menggunakan scope akses penuh agar robot bisa mengedit file kiriman Bapak
+        SCOPES = ['https://www.googleapis.com/auth/drive']
         drive_creds = service_account.Credentials.from_service_account_info(gcp_creds_dict, scopes=SCOPES)
         drive_service = build('drive', 'v3', credentials=drive_creds)
         
