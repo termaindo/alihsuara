@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import os
+import re  # Ditambahkan untuk mendeteksi angka pada teks durasi
 
 def run():
     # --- 1. KARANTINA MEMORI SISTEM ---
@@ -124,6 +125,26 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         jawaban_final = pilihan
         if pilihan == "Isi sendiri...":
             jawaban_final = st.text_input("Masukkan durasi yang Anda inginkan (misal: 45 detik):")
+            
+            # --- LOGIKA PEMBATASAN DURASI (HARD CAP 180 DETIK) ---
+            if jawaban_final:
+                angka_ditemukan = re.findall(r'\d+', jawaban_final)
+                if angka_ditemukan:
+                    nilai_angka = int(angka_ditemukan[0])
+                    teks_kecil = jawaban_final.lower()
+                    
+                    # Konversi ke detik untuk pengecekan
+                    if "jam" in teks_kecil:
+                        total_detik = nilai_angka * 3600
+                    elif "menit" in teks_kecil:
+                        total_detik = nilai_angka * 60
+                    else:
+                        total_detik = nilai_angka
+                    
+                    # Penguncian jika melebihi batas
+                    if total_detik > 180:
+                        st.warning("⏳ **Perhatian:** Maksimal target durasi adalah **180 detik (3 menit)** untuk menjaga kualitas naskah. Isian Anda otomatis dikunci ke batas maksimal tersebut.")
+                        jawaban_final = "180 detik (Batas maksimal)"
 
         col1, col2 = st.columns(2)
         with col1:
@@ -189,10 +210,29 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.divider()
         st.info("📋 **Periksa Kembali Panduan Naskah Anda:**\nSilakan edit langsung di dalam kotak jika ada yang ingin diubah sebelum diserahkan ke Direktur Kreatif.")
 
-        # Menampilkan input editable seperti versi terbaik sebelumnya
+        # Menampilkan input editable
         edit_produk = st.text_input("1. Produk/Jasa", value=st.session_state.jawaban.get("produk", ""))
         edit_poin = st.text_input("2. Poin Penting", value=st.session_state.jawaban.get("poin_penting", ""))
+        
+        # Kolom durasi dengan proteksi real-time
         edit_durasi = st.text_input("3. Target Durasi", value=st.session_state.jawaban.get("durasi", ""))
+        if edit_durasi:
+            angka_ditemukan = re.findall(r'\d+', edit_durasi)
+            if angka_ditemukan:
+                nilai_angka = int(angka_ditemukan[0])
+                teks_kecil = edit_durasi.lower()
+                
+                if "jam" in teks_kecil:
+                    total_detik = nilai_angka * 3600
+                elif "menit" in teks_kecil:
+                    total_detik = nilai_angka * 60
+                else:
+                    total_detik = nilai_angka
+                
+                if total_detik > 180:
+                    st.warning("⏳ **Perhatian:** Maksimal target durasi adalah **180 detik (3 menit)**. Sistem akan menggunakan batas maksimal tersebut untuk naskah Anda.")
+                    edit_durasi = "180 detik (Batas maksimal)"
+
         edit_audiens = st.text_input("4. Target Audiens", value=st.session_state.jawaban.get("audiens", ""))
         edit_vibe = st.text_input("5. Suasana", value=st.session_state.jawaban.get("vibe", ""))
         edit_tambahan = st.text_area("Catatan Tambahan (Opsional)", placeholder="Misal: Wajib sebutkan kata 'Autofagi'.")
