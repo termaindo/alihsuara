@@ -41,12 +41,13 @@ def run():
         drive_creds = service_account.Credentials.from_service_account_info(gcp_creds_dict, scopes=SCOPES)
         drive_service = build('drive', 'v3', credentials=drive_creds)
         
-        folder_id = st.secrets["DRIVE_FOLDER_ID"]
+        # KUNCI SOLUSI: Kita menggunakan ID File secara langsung, bukan ID Folder
+        file_id = st.secrets["DRIVE_FILE_ID"]
         
     except KeyError as e:
-        if "DRIVE_FOLDER_ID" in str(e):
-            st.error("🚨 Kunci 'DRIVE_FOLDER_ID' belum ditambahkan di st.secrets!")
-            st.info("Sistem dihentikan. Silakan ikuti panduan menghubungkan Google Drive terlebih dahulu.")
+        if "DRIVE_FILE_ID" in str(e):
+            st.error("🚨 Kunci 'DRIVE_FILE_ID' belum ditambahkan di st.secrets!")
+            st.info("Sistem dihentikan. Silakan ikuti panduan baru untuk memasukkan ID File ke dalam Secrets.")
             st.stop()
         else:
             st.error(f"Kredensial bermasalah: {e}")
@@ -66,21 +67,13 @@ def run():
 
     st.title("🎧 Ruang 2: Studio Rekaman Pro")
     
-    # --- FUNGSI SINKRONISASI DRIVE (Disembunyikan di dalam agar aman) ---
+    # --- FUNGSI SINKRONISASI DRIVE (Hanya UPDATE, Tanpa CREATE) ---
     def sinkronisasi_drive(tambahan_karakter=0):
         bulan_ini = datetime.now().strftime("%Y-%m")
-        
-        # 1. Cari file di folder Google Drive Bapak
-        query = f"name='{FILE_KUOTA}' and '{folder_id}' in parents and trashed=false"
-        results = drive_service.files().list(q=query, spaces='drive', fields="files(id, name)").execute()
-        items = results.get('files', [])
-        
         data = {"bulan": bulan_ini, "jumlah": 0}
-        file_id = None
         
-        # 2. Jika file ditemukan, unduh dan baca isinya
-        if items:
-            file_id = items[0]['id']
+        # 1. Unduh dan baca file secara langsung menggunakan ID File
+        try:
             request = drive_service.files().get_media(fileId=file_id)
             fh = io.BytesIO()
             downloader = MediaIoBaseDownload(fh, request)
@@ -88,29 +81,35 @@ def run():
             while not done:
                 status, done = downloader.next_chunk()
             fh.seek(0)
-            try:
-                isi_file = fh.read().decode('utf-8')
-                data = json.loads(isi_file)
-            except:
-                pass
+            isi_file = fh.read().decode('utf-8')
+            
+            # Jika file tidak kosong, ubah isinya jadi data aplikasi
+            if isi_file.strip():
+                try:
+                    data = json.loads(isi_file)
+                except:
+                    pass # Jika format salah, kembali ke nilai 0 (awal)
+        except Exception as e:
+            # Jika file gagal dibaca, biarkan data bernilai 0
+            pass
                 
-        # 3. Otomatis reset kuota jika berganti bulan
+        # 2. Otomatis reset kuota jika berganti bulan
         if data.get("bulan") != bulan_ini:
             data = {"bulan": bulan_ini, "jumlah": 0}
             
-        # 4. Tambahkan pemakaian baru
+        # 3. Tambahkan pemakaian baru
         data["jumlah"] += tambahan_karakter
         
-        # 5. Upload kembali ke Google Drive jika ada perubahan
-        if tambahan_karakter > 0 or not items:
-            file_metadata = {'name': FILE_KUOTA, 'parents': [folder_id]}
-            fh_upload = io.BytesIO(json.dumps(data).encode('utf-8'))
-            media = MediaIoBaseUpload(fh_upload, mimetype='application/json', resumable=True)
-            
-            if file_id:
+        # 4. Upload kembali (UPDATE) ke Google Drive HANYA jika ada tambahan
+        if tambahan_karakter > 0:
+            try:
+                fh_upload = io.BytesIO(json.dumps(data).encode('utf-8'))
+                media = MediaIoBaseUpload(fh_upload, mimetype='application/json', resumable=True)
+                
+                # Murni melakukan UPDATE pada file yang sudah ada
                 drive_service.files().update(fileId=file_id, media_body=media).execute()
-            else:
-                drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            except Exception as e:
+                raise Exception(f"Gagal mengupdate file di Google Drive: {e}")
                 
         return data["jumlah"]
 
@@ -122,7 +121,7 @@ def run():
                 st.session_state.kuota_terpakai = sinkronisasi_drive(0)
             except Exception as e:
                 st.error(f"Gagal membaca Google Drive: {e}")
-                st.info("Pastikan Google Drive API aktif dan Folder sudah dibagikan (Share) ke email Service Account.")
+                st.info("Pastikan ID File sudah benar dan file sudah dibagikan (Share) ke email Service Account sebagai Editor.")
                 st.stop()
 
     pemakaian_saat_ini = st.session_state.kuota_terpakai
