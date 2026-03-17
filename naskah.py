@@ -49,6 +49,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.session_state.jawaban = {
             "produk": "", 
             "poin_penting": "", 
+            "tujuan": "",  # Baru ditambahkan
             "durasi": "", 
             "audiens": "", 
             "vibe": "", 
@@ -115,23 +116,38 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     st.warning("Mohon pilih atau isi poin penting terlebih dahulu.")
 
     # ==========================================
-    # LANGKAH 3: DURASI
+    # LANGKAH 3: TUJUAN & DURASI
     # ==========================================
     elif st.session_state.wizard_step == 3:
-        st.subheader("Langkah 3 dari 6: Target Durasi")
-        pilihan = st.selectbox("Berapa detik target durasi naskah Anda?", 
+        st.subheader("Langkah 3 dari 6: Tujuan & Target Durasi")
+        
+        # Penambahan Tujuan Pembuatan Naskah
+        pilihan_tujuan = st.selectbox("Apa tujuan pembuatan naskah ini?", 
+                               ["Pilih...", 
+                                "Copywriting / Naskah Iklan / Promosi", 
+                                "Naskah Rekaman Audio", 
+                                "Naskah Suara Penjelasan di Video", 
+                                "Isi sendiri..."])
+        
+        jawaban_tujuan = pilihan_tujuan
+        if pilihan_tujuan == "Isi sendiri...":
+            jawaban_tujuan = st.text_input("Sebutkan tujuan pembuatan naskah Anda:")
+
+        st.markdown("<br>", unsafe_allow_html=True) # Memberi sedikit jarak
+
+        pilihan_durasi = st.selectbox("Berapa detik target durasi naskah Anda?", 
                                ["Pilih...", "15 detik (Singkat / Iklan Cepat)", "30 detik (Standar Iklan/Reels)", "60 detik (Edukasi / Penjelasan Lengkap)", "Isi sendiri..."])
         
-        jawaban_final = pilihan
-        if pilihan == "Isi sendiri...":
-            jawaban_final = st.text_input("Masukkan durasi yang Anda inginkan (misal: 45 detik):")
+        jawaban_durasi = pilihan_durasi
+        if pilihan_durasi == "Isi sendiri...":
+            jawaban_durasi = st.text_input("Masukkan durasi yang Anda inginkan (misal: 45 detik):")
             
             # --- LOGIKA PEMBATASAN DURASI (HARD CAP 180 DETIK) ---
-            if jawaban_final:
-                angka_ditemukan = re.findall(r'\d+', jawaban_final)
+            if jawaban_durasi:
+                angka_ditemukan = re.findall(r'\d+', jawaban_durasi)
                 if angka_ditemukan:
                     nilai_angka = int(angka_ditemukan[0])
-                    teks_kecil = jawaban_final.lower()
+                    teks_kecil = jawaban_durasi.lower()
                     
                     # Konversi ke detik untuk pengecekan
                     if "jam" in teks_kecil:
@@ -144,7 +160,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     # Penguncian jika melebihi batas
                     if total_detik > 180:
                         st.warning("⏳ **Perhatian:** Maksimal target durasi adalah **180 detik (3 menit)** untuk menjaga kualitas naskah. Isian Anda otomatis dikunci ke batas maksimal tersebut.")
-                        jawaban_final = "180 detik (Batas maksimal)"
+                        jawaban_durasi = "180 detik (Batas maksimal)"
 
         col1, col2 = st.columns(2)
         with col1:
@@ -153,19 +169,21 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                 st.rerun()
         with col2:
             if st.button("Selanjutnya ➡️"):
-                if jawaban_final and jawaban_final != "Pilih...":
-                    st.session_state.jawaban["durasi"] = jawaban_final
+                if jawaban_tujuan and jawaban_durasi and jawaban_tujuan != "Pilih..." and jawaban_durasi != "Pilih...":
+                    st.session_state.jawaban["tujuan"] = jawaban_tujuan
+                    st.session_state.jawaban["durasi"] = jawaban_durasi
                     st.session_state.wizard_step = 4
                     st.rerun()
                 else:
-                    st.warning("Mohon pilih atau isi durasi terlebih dahulu.")
+                    st.warning("Mohon pilih atau isi tujuan dan durasi terlebih dahulu.")
 
     # ==========================================
     # LANGKAH 4: AUDIENS & VIBE
     # ==========================================
     elif st.session_state.wizard_step == 4:
         st.subheader("Langkah 4 dari 6: Audiens & Suasana")
-        pilihan_audiens = st.selectbox("Siapa pendengar utama naskah ini?", 
+        # Perubahan pertanyaan audiens
+        pilihan_audiens = st.selectbox("Untuk siapa pendengar atau pembaca dari naskah ini?", 
                                ["Pilih...", "Pensiunan / Senior (Jelas, santai, hormat)", "Profesional / Pekerja (Formal, padat, lugas)", "Anak Muda / Gen Z (Cepat, kasual, gaul)", "Ibu Rumah Tangga (Hangat, akrab, praktis)", "Isi sendiri..."])
         
         jawaban_audiens = pilihan_audiens
@@ -210,12 +228,13 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.divider()
         st.info("📋 **Periksa Kembali Panduan Naskah Anda:**\nSilakan edit langsung di dalam kotak jika ada yang ingin diubah sebelum diserahkan ke Direktur Kreatif.")
 
-        # Menampilkan input editable
+        # Menampilkan input editable beserta penambahan Tujuan
         edit_produk = st.text_input("1. Produk/Jasa", value=st.session_state.jawaban.get("produk", ""))
         edit_poin = st.text_input("2. Poin Penting", value=st.session_state.jawaban.get("poin_penting", ""))
+        edit_tujuan = st.text_input("3. Tujuan Naskah", value=st.session_state.jawaban.get("tujuan", ""))
         
         # Kolom durasi dengan proteksi real-time
-        edit_durasi = st.text_input("3. Target Durasi", value=st.session_state.jawaban.get("durasi", ""))
+        edit_durasi = st.text_input("4. Target Durasi", value=st.session_state.jawaban.get("durasi", ""))
         if edit_durasi:
             angka_ditemukan = re.findall(r'\d+', edit_durasi)
             if angka_ditemukan:
@@ -233,8 +252,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     st.warning("⏳ **Perhatian:** Maksimal target durasi adalah **180 detik (3 menit)**. Sistem akan menggunakan batas maksimal tersebut untuk naskah Anda.")
                     edit_durasi = "180 detik (Batas maksimal)"
 
-        edit_audiens = st.text_input("4. Target Audiens", value=st.session_state.jawaban.get("audiens", ""))
-        edit_vibe = st.text_input("5. Suasana", value=st.session_state.jawaban.get("vibe", ""))
+        edit_audiens = st.text_input("5. Target Audiens", value=st.session_state.jawaban.get("audiens", ""))
+        edit_vibe = st.text_input("6. Suasana", value=st.session_state.jawaban.get("vibe", ""))
         edit_tambahan = st.text_area("Catatan Tambahan (Opsional)", placeholder="Misal: Wajib sebutkan kata 'Autofagi'.")
 
         col1, col2 = st.columns(2)
@@ -248,6 +267,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     st.session_state.jawaban["konteks"] = jawaban_konteks
                     st.session_state.jawaban["produk"] = edit_produk
                     st.session_state.jawaban["poin_penting"] = edit_poin
+                    st.session_state.jawaban["tujuan"] = edit_tujuan
                     st.session_state.jawaban["durasi"] = edit_durasi
                     st.session_state.jawaban["audiens"] = edit_audiens
                     st.session_state.jawaban["vibe"] = edit_vibe
@@ -271,13 +291,14 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                         system_instruction=DIREKTUR_PROMPT
                     )
                     
-                    # Menyusun prompt yang lebih rapi ke Gemini
+                    # Menyusun prompt yang lebih rapi ke Gemini beserta info tujuan
                     prompt_final = f"""
                     Tolong buatkan naskah berdasarkan panduan berikut:
                     - Produk/Jasa: {st.session_state.jawaban['produk']}
                     - Poin Penting/Keunggulan: {st.session_state.jawaban['poin_penting']}
+                    - Tujuan Pembuatan Naskah: {st.session_state.jawaban['tujuan']}
                     - Durasi Target: {st.session_state.jawaban['durasi']}
-                    - Target Audiens: {st.session_state.jawaban['audiens']}
+                    - Target Audiens/Pembaca: {st.session_state.jawaban['audiens']}
                     - Vibe/Emosi: {st.session_state.jawaban['vibe']}
                     - Konteks Platform: {st.session_state.jawaban['konteks']}
                     - Catatan Tambahan: {st.session_state.jawaban['tambahan'] if st.session_state.jawaban['tambahan'] else "Tidak ada"}
