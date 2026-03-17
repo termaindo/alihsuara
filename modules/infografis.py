@@ -1,18 +1,33 @@
 import streamlit as st
 import re
+import google.generativeai as genai
+import os
 
 def run():
-    st.title("🎨 Ruang 3: Studio Cetak (Visual & Infografis)")
-    st.info("💡 **Informasi:** Studio ini secara otomatis mengubah format naskah Anda menjadi lembar kerja visual (berupa slide atau poin). Ini akan memudahkan Anda menyalin-tempel (*copy-paste*) teks ke aplikasi desain seperti Canva, Photoshop, atau Illustrator.")
+    # --- 1. KARANTINA MEMORI SISTEM & SETUP GEMINI ---
+    os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+    try:
+        gemini_key = st.secrets["GEMINI_API_KEY"]
+        genai.configure(api_key=gemini_key)
+    except Exception as e:
+        st.error(f"Kredensial Gemini bermasalah: {e}")
+        st.stop()
 
-    # --- 1. TARIK NASKAH DARI STATE ---
+    st.title("🎨 Ruang 3: Studio Cetak (Visual & Infografis)")
+    st.info("💡 **Informasi:** Studio ini memakai bantuan AI untuk memecah naskah Anda menjadi lembar kerja visual (*blueprint* desain). Ini akan memudahkan Anda menyalin-tempel (*copy-paste*) teks ke aplikasi desain seperti Canva, Photoshop, atau Illustrator.")
+
+    # Inisialisasi State untuk Hasil Blueprint
+    if "blueprint_infografis" not in st.session_state:
+        st.session_state.blueprint_infografis = ""
+
+    # --- 2. TARIK NASKAH DARI STATE ---
     raw_text = st.session_state.get("hasil_naskah", "")
     
     if not raw_text:
         st.warning("Belum ada naskah yang ditarik. Silakan buat naskah terlebih dahulu di Ruang 1 (Rapat Naskah).")
         return
 
-    # --- 2. EKSTRAKSI TEKS DARI KOTAK MARKDOWN ---
+    # --- 3. EKSTRAKSI TEKS DARI KOTAK MARKDOWN ---
     naskah_final = raw_text
     bt = "```" 
     pattern = rf"{bt}(?:text|markdown|xml)?\n(.*?)({bt})"
@@ -20,40 +35,99 @@ def run():
     
     if match_naskah:
         naskah_final = match_naskah.group(1).strip()
-        st.success("✅ Naskah visual berhasil ditarik dari Ruang 1!")
+        st.success("✅ Naskah dasar berhasil ditarik dari Ruang 1!")
     else:
         st.info("💡 Naskah ditarik tanpa filter blok kode.")
 
-    # --- 3. KOTAK EDITING UTAMA ---
-    st.markdown("### 📝 Papan Kerja Teks Visual")
-    st.write("Anda bisa mengedit dan merapikan finalisasi teks di sini sebelum dipindahkan ke aplikasi desain:")
-    
-    user_input = st.text_area(
-        "Edit naskah Anda di sini:", 
-        value=naskah_final, 
-        height=250,
-        help="Perubahan di sini bersifat sementara untuk memudahkan Anda menyalin teks."
-    )
+    # --- 4. FILTER DROPDOWN PENGATURAN DESAIN ---
+    st.markdown("### 🎛️ Pengaturan Format Desain")
+    col1, col2 = st.columns(2)
+    with col1:
+        opsi_slide = st.selectbox(
+            "1. Jumlah Slide / Tampilan:", 
+            [
+                "Pilih...",
+                "Otomatis (Sesuai panjang teks)",
+                "1 Halaman Penuh (Poster/Infografis Panjang)",
+                "3 Slide (Carousel Singkat)",
+                "5 Slide (Carousel Standar)",
+                "7 Slide (Carousel Edukasi)",
+                "10 Slide (Carousel Maksimal Instagram)"
+            ]
+        )
+    with col2:
+        opsi_dimensi = st.selectbox(
+            "2. Ukuran Dimensi:", 
+            [
+                "Pilih...",
+                "1080 x 1080 px (Square / IG Feed)",
+                "1080 x 1350 px (Portrait / IG Feed)",
+                "1080 x 1920 px (Vertical / IG Story / TikTok)",
+                "1920 x 1080 px (Landscape / Presentasi PPT / YouTube)"
+            ]
+        )
 
     st.divider()
 
-    # --- 4. PEMISAHAN OTOMATIS MENJADI SLIDE / POIN ---
-    st.markdown("### 🗂️ Pemecahan per Slide / Poin")
-    st.write("Sistem mencoba memecah naskah Anda berdasarkan paragraf atau poin (*bullet points*) untuk mempermudah alur desain visual Anda:")
-
-    # Logika sederhana pemecah paragraf (berdasarkan dua enter berturut-turut)
-    paragraphs = [p.strip() for p in user_input.split('\n\n') if p.strip()]
+    # --- 5. RANGKUMAN POIN PENTING (KOTAK KERJA) ---
+    st.markdown("### 📝 Rangkuman Poin Penting (Draft)")
+    st.write("Berikut adalah naskah mentah Anda. Anda bisa mengedit atau menambahkan catatan khusus di sini sebelum AI mengubahnya menjadi format *slide*.")
     
-    if len(paragraphs) == 1:
-        # Jika hanya ada 1 paragraf panjang, coba pecah berdasarkan baris baru (enter tunggal)
-        paragraphs = [p.strip() for p in user_input.split('\n') if p.strip()]
+    user_input = st.text_area(
+        "Kotak Kerja Draft Naskah:", 
+        value=naskah_final, 
+        height=200,
+        help="Edit poin-poin penting di sini sebelum menekan tombol pembuatan."
+    )
 
-    # Menampilkan ke dalam kotak-kotak kartu
-    for i, p in enumerate(paragraphs):
-        with st.container():
-            st.markdown(f"**Slide / Bagian {i+1}**")
-            st.info(p)
-            # Tombol copy bawaan dari Streamlit `st.code` bisa dimanfaatkan
-            st.code(p, language="text")
+    # --- 6. PROSES PEMBUATAN INFOGRAFIS OLEH AI ---
+    if st.button("✨ Buat Blueprint Infografis Sekarang", use_container_width=True, type="primary"):
+        if opsi_slide == "Pilih..." or opsi_dimensi == "Pilih...":
+            st.warning("⚠️ Mohon pilih jumlah slide dan ukuran dimensi terlebih dahulu!")
+        elif not user_input.strip():
+            st.warning("⚠️ Draft naskah tidak boleh kosong!")
+        else:
+            with st.spinner("Desainer AI sedang memecah teks dan menyusun tata letak (layout)..."):
+                try:
+                    # Instruksi khusus untuk AI Desainer
+                    PROMPT_DESAINER = f"""
+                    Kamu adalah Ahli Desain Visual dan Copywriter Media Sosial profesional.
+                    Tugasmu adalah mengubah teks/draft mentah menjadi blueprint (panduan desain) yang siap di-copy-paste ke Canva/Photoshop.
+
+                    PANDUAN STRUKTUR DESAIN:
+                    - Target Jumlah Slide: {opsi_slide}
+                    - Dimensi Desain: {opsi_dimensi}
+                    
+                    ATURAN MUTLAK FORMAT OUTPUT:
+                    1. Pecah teks mentah ke dalam beberapa bagian yang jelas (Slide 1, Slide 2, dst).
+                    2. Sesuaikan kepadatan teks! Jika dimensi "Square" (1080x1080), teks harus sedikit dan font besar. Jika dimensi "Vertical" atau "1 Halaman", teks bisa lebih banyak berderet ke bawah.
+                    3. Untuk setiap Slide/Halaman, WAJIB memiliki format baku seperti ini:
+                       
+                       ### 🖼️ Slide [Nomor]
+                       **Judul Besar:** [Headline singkat yang memancing mata]
+                       **Teks Utama:** [Isi konten berupa poin-poin/kalimat singkat]
+                       **Saran Visual:** [Saran singkat ikon, gambar latar, atau warna yang cocok]
+                       ---
+                       
+                    4. Pastikan teks sangat *to-the-point*, hapus kata-kata berbunga-bunga yang tidak cocok untuk format gambar visual. Tuliskan dalam bahasa Indonesia yang memikat.
+                    """
+
+                    model_desainer = genai.GenerativeModel(
+                        model_name="gemini-2.5-flash",
+                        system_instruction=PROMPT_DESAINER
+                    )
+                    
+                    response = model_desainer.generate_content(f"Draft Naskah:\n{user_input}")
+                    st.session_state.blueprint_infografis = response.text
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan saat menyusun infografis: {e}")
+
+    # --- 7. TAMPILAN HASIL AKHIR ---
+    if st.session_state.blueprint_infografis:
+        st.success("🎉 Blueprint Infografis berhasil dibuat!")
+        
+        # Menampilkan dalam wadah dengan latar belakang yang jelas
+        with st.container(border=True):
+            st.markdown(st.session_state.blueprint_infografis)
             
-    st.success("✨ Semua bagian teks di atas sudah siap dipindahkan ke kanvas desain Anda!")
+        st.info("💡 **Tips:** Anda sekarang bisa memblok (highlight) teks di masing-masing slide di atas, lalu menyalinnya (Copy) ke dalam template presentasi atau desain media sosial Anda.")
