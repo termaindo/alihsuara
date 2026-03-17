@@ -345,15 +345,19 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
             st.divider()
             
             # Notifikasi yang lebih ramah dan menenangkan bagi orang awam
-            st.info("💡 **Catatan:** Naskah di dalam kotak hitam di atas sudah dirancang khusus menggunakan susunan kata dan tanda baca (koma dan titik) agar dibaca secara natural oleh mesin. Sistem kami akan otomatis menarik naskah ini saat Anda menekan tombol pindah ke Studio Rekaman di bawah ini.")
+            st.info("💡 **Catatan:** Sistem kami akan otomatis menarik naskah di dalam kotak hitam di atas saat Anda berpindah ruangan. Silakan pilih ke mana Anda ingin memproses naskah ini selanjutnya:")
             
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 if st.button("🔄 Buat Naskah Baru"):
                     st.session_state.hasil_naskah = ""
                     st.session_state.wizard_step = 1
                     st.rerun()
             with col2:
-                if st.button("🚀 Pindah ke Studio Rekaman (VO)", use_container_width=True):
+                if st.button("🎨 Ke Studio Cetak (Visual)", use_container_width=True):
+                    st.session_state.menu_aktif = "3. Studio Cetak"
+                    st.rerun()
+            with col3:
+                if st.button("🚀 Ke Studio Rekaman (VO)", use_container_width=True):
                     st.session_state.menu_aktif = "2. Studio Rekaman"
                     st.rerun()
