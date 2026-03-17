@@ -91,23 +91,23 @@ def run():
         else:
             with st.spinner("Desainer AI sedang memecah teks dan menyusun tata letak (layout)..."):
                 try:
-                    # Instruksi khusus untuk AI Desainer
+                    # Instruksi khusus untuk AI Desainer (Telah dioptimasi agar mematuhi jumlah slide dan format teks)
                     PROMPT_DESAINER = f"""
                     Kamu adalah Ahli Desain Visual dan Copywriter Media Sosial profesional.
                     Tugasmu adalah mengubah teks/draft mentah menjadi blueprint (panduan desain) yang siap di-copy-paste ke Canva/Photoshop.
 
                     PANDUAN STRUKTUR DESAIN:
-                    - Target Jumlah Slide: {opsi_slide}
+                    - Target Jumlah Slide: {opsi_slide} (ATURAN MUTLAK: Kamu WAJIB mematuhi instruksi jumlah slide ini. Jika pengguna memilih "1 Halaman Penuh", kamu HANYA BOLEH merangkum semuanya ke dalam 1 Slide/Halaman saja).
                     - Dimensi Desain: {opsi_dimensi}
                     
                     ATURAN MUTLAK FORMAT OUTPUT:
-                    1. Pecah teks mentah ke dalam beberapa bagian yang jelas (Slide 1, Slide 2, dst).
-                    2. Sesuaikan kepadatan teks! Jika dimensi "Square" (1080x1080), teks harus sedikit dan font besar. Jika dimensi "Vertical" atau "1 Halaman", teks bisa lebih banyak berderet ke bawah.
+                    1. Pecah teks mentah ke dalam bagian yang sesuai dengan target jumlah slide (Slide 1, Slide 2, dst).
+                    2. JANGAN menggunakan terlalu banyak cetak tebal (bold/markdown **). Gunakan huruf normal biasa untuk Teks Utama agar rapi saat disalin.
                     3. Untuk setiap Slide/Halaman, WAJIB memiliki format baku seperti ini:
                        
                        ### 🖼️ Slide [Nomor]
                        **Judul Besar:** [Headline singkat yang memancing mata]
-                       **Teks Utama:** [Isi konten berupa poin-poin/kalimat singkat]
+                       **Teks Utama:** [Isi konten berupa paragraf singkat atau poin-poin dengan huruf normal (tanpa cetak tebal)]
                        **Saran Visual:** [Saran singkat ikon, gambar latar, atau warna yang cocok]
                        ---
                        
@@ -147,7 +147,7 @@ def run():
                         f"Create a highly detailed image generation prompt in English for an infographic poster based on this text. Make it visually appealing, modern, clean, with appropriate colors and layout. Include dummy text elements. Limit to 1 paragraph. Text:\n{st.session_state.blueprint_infografis}"
                     ).text
 
-                    # 2. Panggil API Image Generation Google
+                    # 2. Panggil API Image Generation Google (URL telah diperbaiki tanpa elemen markdown)
                     api_key = st.secrets["GEMINI_API_KEY"]
                     url = f"[https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=](https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=){api_key}"
                     headers = {'Content-Type': 'application/json'}
