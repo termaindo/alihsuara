@@ -190,7 +190,7 @@ def run():
                     if not prompt_en:
                         raise last_error_prompt
 
-                    # 2. Panggil API Image Generation Google (URL BERSIH TOTAL)
+                    # 2. Panggil API Image Generation Google (URL BERSIH TOTAL TANPA KODE MARKDOWN)
                     api_key = st.secrets["GEMINI_API_KEY"]
                     url = f"[https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=](https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=){api_key}"
                     headers = {'Content-Type': 'application/json'}
@@ -231,3 +231,18 @@ def run():
                             st.error("⏳ **Sistem Sedang Sibuk!** Antrean sedang penuh. Silakan tunggu sekitar **1 menit** sebelum mencoba cetak gambar lagi.")
                     else:
                         st.error(f"Gagal mencetak gambar: {e}")
+
+    # --- 8. NAVIGASI KE STUDIO LAIN ---
+    st.divider()
+    st.markdown("### 🚀 Lanjut Produksi Karya Lain")
+    st.info("💡 **Info:** Meskipun kuota pembuat naskah atau gambar AI sedang habis, Anda **tetap bisa** menggunakan **Studio Rekaman**. Naskah dasar yang ada di atas sudah tersimpan aman dan siap diproses menjadi suara.")
+    
+    col_nav1, col_nav2 = st.columns(2)
+    with col_nav1:
+        if st.button("🎙️ Ke Studio Rekaman (VO)", use_container_width=True):
+            st.session_state.menu_aktif = "2. Studio Rekaman"
+            st.rerun()
+    with col_nav2:
+        if st.button("📝 Kembali ke Ruang Naskah", use_container_width=True):
+            st.session_state.menu_aktif = "1. Ruang Naskah"
+            st.rerun()
