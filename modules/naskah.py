@@ -70,8 +70,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                                ["Pilih...", 
                                 "Aplikasi Sehat - Konsultan IF",
                                 "Aplikasi Expert Stock Pro - Konsultan Saham Indonesia",
-                                "Produk Kesehatan & Suplemen", 
-                                "Makanan & Minuman", 
+                                "Produk Kesehatan & Perawatan Pribadi", 
+                                "Makanan, Minuman & Suplemen", 
                                 "Layanan / Jasa Komunitas", 
                                 "Barang Elektronik / Gadget", 
                                 "Acara / Webinar",
@@ -98,8 +98,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         # Logika Kategori Umum (Memicu pertanyaan Merk & Jenis Spesifik)
         produk_terpilih = st.session_state.jawaban.get("produk", "")
         kategori_umum = [
-            "Produk Kesehatan & Suplemen", 
-            "Makanan & Minuman", 
+            "Produk Kesehatan & Perawatan Pribadi", 
+            "Makanan, Minuman & Suplemen", 
             "Layanan / Jasa Komunitas", 
             "Barang Elektronik / Gadget", 
             "Acara / Webinar"
