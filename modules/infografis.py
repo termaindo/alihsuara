@@ -91,7 +91,6 @@ def run():
         else:
             with st.spinner("Desainer AI sedang memecah teks dan menyusun tata letak (layout)..."):
                 try:
-                    # Instruksi digabungkan ke prompt utama agar kompatibel dengan model gemini-1.0-pro (Auto-Fallback)
                     PROMPT_DESAINER = f"""
                     Kamu adalah Ahli Desain Visual dan Copywriter Media Sosial profesional.
                     Tugasmu adalah mengubah teks/draft mentah menjadi blueprint (panduan desain) yang siap di-copy-paste ke Canva/Photoshop.
@@ -118,27 +117,37 @@ def run():
                     {user_input}
                     """
 
-                    # --- SISTEM AUTO-FALLBACK MODEL AI ---
-                    try:
-                        model_desainer = genai.GenerativeModel(model_name="gemini-1.5-flash")
-                        response = model_desainer.generate_content(PROMPT_DESAINER)
-                    except Exception as inner_e:
-                        if "404" in str(inner_e):
-                            try:
-                                model_desainer = genai.GenerativeModel(model_name="gemini-1.0-pro")
-                                response = model_desainer.generate_content(PROMPT_DESAINER)
-                            except Exception:
-                                model_desainer = genai.GenerativeModel(model_name="gemini-2.5-flash")
-                                response = model_desainer.generate_content(PROMPT_DESAINER)
-                        else:
-                            raise inner_e
+                    # --- SISTEM AUTO-FALLBACK MODEL AI CERDAS ---
+                    # Mencoba dari model dengan kuota gratis paling besar hingga yang terkecil
+                    models_to_try = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.0-pro", "gemini-2.5-flash"]
+                    response = None
+                    last_error = None
+                    
+                    for model_name in models_to_try:
+                        try:
+                            model_desainer = genai.GenerativeModel(model_name=model_name)
+                            response = model_desainer.generate_content(PROMPT_DESAINER)
+                            break  # Jika berhasil, keluar dari loop
+                        except Exception as inner_e:
+                            last_error = inner_e
+                            if "404" in str(inner_e):
+                                continue  # Model tidak didukung, coba model berikutnya
+                            else:
+                                raise inner_e  # Error lain (seperti 429 Kuota Habis), langsung lempar keluar
+                    
+                    if not response:
+                        raise last_error
 
                     st.session_state.blueprint_infografis = response.text
                     
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg or "Quota exceeded" in error_msg:
-                        st.error("⏳ **Kuota AI Gratis Terlampaui!** Anda telah mencapai batas maksimal permintaan ke mesin AI untuk saat ini. Silakan tunggu sekitar **1 menit** sebelum mencoba lagi.")
+                        # Mendeteksi apakah ini batas harian (20 limit) atau batas RPM (menit)
+                        if "limit: 20" in error_msg or "PerDay" in error_msg:
+                            st.error("⏳ **Kuota Harian AI Terkuras Habis!** Anda telah melewati batas maksimal permintaan gratis per hari dari Google. Silakan ganti API Key dengan akun Google lain, atau tunggu esok hari.")
+                        else:
+                            st.error("⏳ **Sistem AI Sedang Sibuk!** Anda melakukan permintaan terlalu cepat. Silakan tunggu sekitar **1 menit** sebelum mencoba lagi.")
                     else:
                         st.error(f"Terjadi kesalahan saat menyusun infografis: {e}")
 
@@ -159,25 +168,29 @@ def run():
         if st.button("🖼️ Cetak Gambar Infografis Sekarang", use_container_width=True):
             with st.spinner("Mesin AI sedang melukis gambar Anda... (Ini memakan waktu beberapa detik)"):
                 try:
-                    # 1. Terjemahkan blueprint menjadi prompt bahasa inggris yang kuat untuk Image Generator
                     prompt_minta_gambar = f"Create a highly detailed image generation prompt in English for an infographic poster based on this text. Make it visually appealing, modern, clean, with appropriate colors and layout. Include dummy text elements. Limit to 1 paragraph. Text:\n{st.session_state.blueprint_infografis}"
                     
                     # --- AUTO-FALLBACK UNTUK PROMPT GENERATOR ---
-                    try:
-                        model_prompt = genai.GenerativeModel(model_name="gemini-1.5-flash")
-                        prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
-                    except Exception as inner_e:
-                        if "404" in str(inner_e):
-                            try:
-                                model_prompt = genai.GenerativeModel(model_name="gemini-1.0-pro")
-                                prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
-                            except Exception:
-                                model_prompt = genai.GenerativeModel(model_name="gemini-2.5-flash")
-                                prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
-                        else:
-                            raise inner_e
+                    models_to_try = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.0-pro", "gemini-2.5-flash"]
+                    prompt_en = None
+                    last_error_prompt = None
+                    
+                    for model_name in models_to_try:
+                        try:
+                            model_prompt = genai.GenerativeModel(model_name=model_name)
+                            prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
+                            break
+                        except Exception as inner_e:
+                            last_error_prompt = inner_e
+                            if "404" in str(inner_e):
+                                continue
+                            else:
+                                raise inner_e
+                    
+                    if not prompt_en:
+                        raise last_error_prompt
 
-                    # 2. Panggil API Image Generation Google (URL telah dibersihkan secara total)
+                    # 2. Panggil API Image Generation Google (URL BERSIH)
                     api_key = st.secrets["GEMINI_API_KEY"]
                     url = f"[https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=](https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=){api_key}"
                     headers = {'Content-Type': 'application/json'}
@@ -208,10 +221,13 @@ def run():
                     )
                     
                 except requests.exceptions.RequestException as req_err:
-                    st.error("⏳ Gagal mencetak gambar. Mesin pembuat gambar (Imagen) mungkin sedang sibuk atau kuota harian tercapai. Coba lagi nanti.")
+                    st.error("⏳ Gagal mencetak gambar. Mesin pembuat gambar (Imagen) sedang sibuk, tidak tersedia, atau batas penggunaan API Key Anda telah habis. Coba gunakan API Key lain.")
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg or "Quota exceeded" in error_msg:
-                        st.error("⏳ **Kuota AI Gratis Terlampaui!** Silakan tunggu sekitar **1 menit** sebelum mencoba cetak gambar lagi.")
+                        if "limit: 20" in error_msg or "PerDay" in error_msg:
+                            st.error("⏳ **Kuota Harian AI Terkuras Habis!** Anda telah melewati batas harian. Silakan ganti API Key Anda.")
+                        else:
+                            st.error("⏳ **Sistem AI Sedang Sibuk!** Silakan tunggu sekitar **1 menit** sebelum mencoba cetak gambar lagi.")
                     else:
                         st.error(f"Gagal mencetak gambar: {e}")
