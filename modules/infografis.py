@@ -145,9 +145,9 @@ def run():
                     if "429" in error_msg or "Quota exceeded" in error_msg:
                         # Mendeteksi apakah ini batas harian (20 limit) atau batas RPM (menit)
                         if "limit" in error_msg.lower() or "perday" in error_msg.lower():
-                            st.error("⏳ **Kuota Harian AI Terkuras Habis!** Anda telah melewati batas maksimal permintaan gratis per hari dari Google. Silakan ganti API Key dengan akun Google lain, atau tunggu esok hari.")
+                            st.error("⏳ **Kuota Harian Sistem Telah Habis!** Sistem AI saat ini telah mencapai batas maksimal penggunaannya untuk hari ini. Silakan kembali lagi besok.")
                         else:
-                            st.error("⏳ **Sistem AI Sedang Sibuk!** Anda melakukan permintaan terlalu cepat. Silakan tunggu sekitar **1 menit** sebelum mencoba lagi.")
+                            st.error("⏳ **Sistem AI Sedang Sibuk!** Terlalu banyak permintaan dalam waktu bersamaan. Silakan tunggu sekitar **1 menit** sebelum mencoba lagi.")
                     else:
                         st.error(f"Terjadi kesalahan saat menyusun infografis: {e}")
 
@@ -221,13 +221,13 @@ def run():
                     )
                     
                 except requests.exceptions.RequestException as req_err:
-                    st.error("⏳ Gagal mencetak gambar. Mesin pembuat gambar (Imagen) sedang sibuk, tidak tersedia, atau batas penggunaan API Key Anda telah habis. Coba gunakan API Key lain.")
+                    st.error("⏳ Maaf, gagal mencetak gambar. Mesin pembuat gambar sedang sangat sibuk atau kuota gratis sistem telah habis digunakan hari ini. Silakan coba kembali esok hari.")
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg or "Quota exceeded" in error_msg:
                         if "limit" in error_msg.lower() or "perday" in error_msg.lower():
-                            st.error("⏳ **Kuota Harian AI Terkuras Habis!** Anda telah melewati batas harian. Silakan ganti API Key Anda.")
+                            st.error("⏳ **Kuota Harian Sistem Telah Habis!** Sistem telah mencapai batas maksimal pembuatan gambar hari ini. Silakan coba kembali esok hari.")
                         else:
-                            st.error("⏳ **Sistem AI Sedang Sibuk!** Silakan tunggu sekitar **1 menit** sebelum mencoba cetak gambar lagi.")
+                            st.error("⏳ **Sistem Sedang Sibuk!** Antrean sedang penuh. Silakan tunggu sekitar **1 menit** sebelum mencoba cetak gambar lagi.")
                     else:
                         st.error(f"Gagal mencetak gambar: {e}")
