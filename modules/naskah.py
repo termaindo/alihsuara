@@ -79,6 +79,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_final = pilihan
         if pilihan == "Isi sendiri...":
+            if "produk_custom_1" not in st.session_state:
+                st.session_state.produk_custom_1 = ""
             jawaban_final = st.text_input("Sebutkan produk atau jasa Anda secara spesifik:", key="produk_custom_1")
 
         if st.button("Selanjutnya ➡️"):
@@ -111,9 +113,15 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         # Jika memilih kategori umum (bukan aplikasi khusus atau "isi sendiri")
         if produk_terpilih in kategori_umum:
             st.info(f"💡 Anda memilih kategori umum **{produk_terpilih}**. Mohon lengkapi detail berikut:")
-            # Kunci 'key' ditambahkan agar state text input tidak hilang saat selectbox diklik
-            merk_input = st.text_input("Apa Merk / Brand produk Anda?", value=st.session_state.jawaban.get("merk", ""), key="merk_input_2")
-            jenis_input = st.text_input("Apa jenis produk / jasa Anda secara spesifik?", value=st.session_state.jawaban.get("jenis_spesifik", ""), placeholder="Misal: Sabun Cair Alami, Jasa Bersih AC, dll", key="jenis_input_2")
+            
+            # SOLUSI STATE: Inisialisasi awal nilai key agar tidak dihapus paksa oleh parameter 'value'
+            if "merk_input_2" not in st.session_state:
+                st.session_state.merk_input_2 = st.session_state.jawaban.get("merk", "")
+            if "jenis_input_2" not in st.session_state:
+                st.session_state.jenis_input_2 = st.session_state.jawaban.get("jenis_spesifik", "")
+                
+            merk_input = st.text_input("Apa Merk / Brand produk Anda?", key="merk_input_2")
+            jenis_input = st.text_input("Apa jenis produk / jasa Anda secara spesifik?", placeholder="Misal: Sabun Cair Alami, Jasa Bersih AC, dll", key="jenis_input_2")
             st.markdown("<br>", unsafe_allow_html=True)
 
         pilihan = st.selectbox("Apa pesan utama atau keunggulan yang WAJIB disampaikan?", 
@@ -126,6 +134,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_final = pilihan
         if pilihan == "Isi sendiri...":
+            if "poin_custom_2" not in st.session_state:
+                st.session_state.poin_custom_2 = ""
             jawaban_final = st.text_area("Tuliskan poin penting/keunggulan produk Anda:", key="poin_custom_2")
 
         col1, col2 = st.columns(2)
@@ -164,6 +174,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_tujuan = pilihan_tujuan
         if pilihan_tujuan == "Isi sendiri...":
+            if "tujuan_custom_3" not in st.session_state:
+                st.session_state.tujuan_custom_3 = ""
             jawaban_tujuan = st.text_input("Sebutkan tujuan pembuatan naskah Anda:", key="tujuan_custom_3")
 
         st.markdown("<br>", unsafe_allow_html=True) # Memberi sedikit jarak
@@ -173,6 +185,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_durasi = pilihan_durasi
         if pilihan_durasi == "Isi sendiri...":
+            if "durasi_custom_3" not in st.session_state:
+                st.session_state.durasi_custom_3 = ""
             jawaban_durasi = st.text_input("Masukkan target panjang naskah (misal: 45 detik, 2 paragraf, atau 5 slide):", key="durasi_custom_3")
             
             # --- LOGIKA PEMBATASAN DURASI (HARD CAP 180 DETIK) ---
@@ -223,6 +237,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_audiens = pilihan_audiens
         if pilihan_audiens == "Isi sendiri...":
+            if "audiens_custom_4" not in st.session_state:
+                st.session_state.audiens_custom_4 = ""
             jawaban_audiens = st.text_input("Masukkan target audiens Anda:", key="audiens_custom_4")
 
         pilihan_vibe = st.selectbox("Perasaan apa yang ingin dibangun?", 
@@ -230,6 +246,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_vibe = pilihan_vibe
         if pilihan_vibe == "Isi sendiri...":
+            if "vibe_custom_4" not in st.session_state:
+                st.session_state.vibe_custom_4 = ""
             jawaban_vibe = st.text_input("Masukkan vibe/emosi yang Anda inginkan:", key="vibe_custom_4")
 
         col1, col2 = st.columns(2)
@@ -266,13 +284,17 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_konteks = pilihan_konteks
         if pilihan_konteks == "Isi sendiri...":
+            if "konteks_custom_5" not in st.session_state:
+                st.session_state.konteks_custom_5 = ""
             jawaban_konteks = st.text_input("Masukkan platform tujuan Anda:", key="konteks_custom_5")
 
         st.divider()
         st.info("📋 **Periksa Kembali Panduan Naskah Anda:**\nSilakan edit langsung di dalam kotak jika ada yang ingin diubah sebelum diserahkan ke Direktur Kreatif.")
 
-        # Menampilkan input editable (semua diberikan kunci/key agar stabil)
-        edit_produk = st.text_input("1. Kategori Produk/Jasa", value=st.session_state.jawaban.get("produk", ""), key="edit_produk_5")
+        # Menampilkan input editable dengan inisialisasi cache yang aman
+        if "edit_produk_5" not in st.session_state:
+            st.session_state.edit_produk_5 = st.session_state.jawaban.get("produk", "")
+        edit_produk = st.text_input("1. Kategori Produk/Jasa", key="edit_produk_5")
         
         # Penyesuaian nama kategori persis seperti di Langkah 1 & 2
         kategori_umum = [
@@ -287,14 +309,26 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         edit_jenis = st.session_state.jawaban.get("jenis_spesifik", "")
         
         if edit_produk in kategori_umum or edit_merk or edit_jenis:
-            edit_merk = st.text_input("1a. Merk / Brand", value=edit_merk, key="edit_merk_5")
-            edit_jenis = st.text_input("1b. Jenis Spesifik", value=edit_jenis, key="edit_jenis_5")
+            if "edit_merk_5" not in st.session_state:
+                st.session_state.edit_merk_5 = edit_merk
+            if "edit_jenis_5" not in st.session_state:
+                st.session_state.edit_jenis_5 = edit_jenis
+                
+            edit_merk = st.text_input("1a. Merk / Brand", key="edit_merk_5")
+            edit_jenis = st.text_input("1b. Jenis Spesifik", key="edit_jenis_5")
 
-        edit_poin = st.text_input("2. Poin Penting", value=st.session_state.jawaban.get("poin_penting", ""), key="edit_poin_5")
-        edit_tujuan = st.text_input("3. Tujuan Naskah", value=st.session_state.jawaban.get("tujuan", ""), key="edit_tujuan_5")
+        if "edit_poin_5" not in st.session_state:
+            st.session_state.edit_poin_5 = st.session_state.jawaban.get("poin_penting", "")
+        edit_poin = st.text_input("2. Poin Penting", key="edit_poin_5")
         
-        # Kolom durasi dengan proteksi real-time
-        edit_durasi = st.text_input("4. Target Panjang/Durasi", value=st.session_state.jawaban.get("durasi", ""), key="edit_durasi_5")
+        if "edit_tujuan_5" not in st.session_state:
+            st.session_state.edit_tujuan_5 = st.session_state.jawaban.get("tujuan", "")
+        edit_tujuan = st.text_input("3. Tujuan Naskah", key="edit_tujuan_5")
+        
+        if "edit_durasi_5" not in st.session_state:
+            st.session_state.edit_durasi_5 = st.session_state.jawaban.get("durasi", "")
+        edit_durasi = st.text_input("4. Target Panjang/Durasi", key="edit_durasi_5")
+        
         if edit_durasi:
             angka_ditemukan = re.findall(r'\d+', edit_durasi)
             if angka_ditemukan:
@@ -314,8 +348,16 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     st.warning("⏳ **Perhatian:** Maksimal target durasi adalah **180 detik (3 menit)**. Sistem akan menggunakan batas maksimal tersebut untuk naskah Anda.")
                     edit_durasi = "180 detik (Batas maksimal)"
 
-        edit_audiens = st.text_input("5. Target Audiens", value=st.session_state.jawaban.get("audiens", ""), key="edit_audiens_5")
-        edit_vibe = st.text_input("6. Suasana", value=st.session_state.jawaban.get("vibe", ""), key="edit_vibe_5")
+        if "edit_audiens_5" not in st.session_state:
+            st.session_state.edit_audiens_5 = st.session_state.jawaban.get("audiens", "")
+        edit_audiens = st.text_input("5. Target Audiens", key="edit_audiens_5")
+        
+        if "edit_vibe_5" not in st.session_state:
+            st.session_state.edit_vibe_5 = st.session_state.jawaban.get("vibe", "")
+        edit_vibe = st.text_input("6. Suasana", key="edit_vibe_5")
+        
+        if "edit_tambahan_5" not in st.session_state:
+            st.session_state.edit_tambahan_5 = st.session_state.jawaban.get("tambahan", "")
         edit_tambahan = st.text_area("Catatan Tambahan (Opsional)", placeholder="Misal: Wajib sebutkan kata 'Autofagi'.", key="edit_tambahan_5")
 
         col1, col2 = st.columns(2)
@@ -357,9 +399,6 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
             with st.spinner("Direktur sedang menyusun naskah yang natural dan berjiwa..."):
                 try:
                     # MENGGUNAKAN gemini-pro: Alias paling stabil dan universal di semua region/versi library.
-                    # Memiliki kuota gratis besar (1500 request/hari).
-                    # Catatan teknis: system_instruction dilepas dari parameter agar kompatibel dengan versi lawas, 
-                    # dan digabungkan langsung ke dalam prompt utama.
                     model_direktur = genai.GenerativeModel(model_name="gemini-pro")
                     
                     # Logika Hard Cap & Format Khusus
@@ -370,7 +409,6 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                         instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*."
 
                     # Menyusun prompt yang lebih rapi ke Gemini beserta info Tujuan, Merk & Jenis
-                    # DIREKTUR_PROMPT diletakkan langsung di dalam teks agar dibaca sempurna oleh model gemini-pro
                     prompt_final = f"""
                     {DIREKTUR_PROMPT}
 
@@ -423,7 +461,6 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
             st.markdown("### Pembuatan Naskah Baru:")
             col3, col4 = st.columns(2)
             with col3:
-                # Tombol baru untuk repurposing content (kembali ke langkah 3 dengan data lama utuh)
                 if st.button("🔁 Buat Versi Platform Lain", use_container_width=True, help="Ubah tujuan atau format naskah tanpa perlu mengetik ulang data produk Anda."):
                     st.session_state.hasil_naskah = ""
                     st.session_state.wizard_step = 3
@@ -431,8 +468,15 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
             with col4:
                 if st.button("🔄 Reset & Buat Naskah Baru", use_container_width=True, help="Hapus semua data dan mulai dari awal."):
                     st.session_state.hasil_naskah = ""
-                    # Membersihkan seluruh jawaban lama agar benar-benar tereset
+                    # 1. Bersihkan seluruh jawaban lama
                     for key in st.session_state.jawaban.keys():
                         st.session_state.jawaban[key] = ""
+                    
+                    # 2. HAPUS cache memori untuk menghindari bug widget pada reset
+                    keys_to_clear = list(st.session_state.keys())
+                    for k in keys_to_clear:
+                        if k.endswith("_1") or k.endswith("_2") or k.endswith("_3") or k.endswith("_4") or k.endswith("_5"):
+                            del st.session_state[k]
+                            
                     st.session_state.wizard_step = 1
                     st.rerun()
