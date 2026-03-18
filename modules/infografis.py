@@ -91,7 +91,7 @@ def run():
         else:
             with st.spinner("Desainer AI sedang memecah teks dan menyusun tata letak (layout)..."):
                 try:
-                    # Instruksi khusus untuk AI Desainer (Telah dioptimasi agar mematuhi jumlah slide dan format teks)
+                    # Instruksi digabungkan ke prompt utama agar kompatibel dengan model gemini-1.0-pro (Auto-Fallback)
                     PROMPT_DESAINER = f"""
                     Kamu adalah Ahli Desain Visual dan Copywriter Media Sosial profesional.
                     Tugasmu adalah mengubah teks/draft mentah menjadi blueprint (panduan desain) yang siap di-copy-paste ke Canva/Photoshop.
@@ -106,24 +106,41 @@ def run():
                     3. JANGAN menggunakan terlalu banyak cetak tebal (bold/markdown **). Gunakan huruf normal biasa untuk Teks Utama.
                     4. Untuk setiap Slide/Halaman, WAJIB memiliki format baku seperti ini:
                        
-                       ### 🖼️ Slide [Nomor]
+                       Slide [Nomor]
                        **Judul Besar:** [Headline singkat yang memancing mata]
                        **Teks Utama:** [Isi konten berupa paragraf singkat atau poin-poin dengan huruf normal. JANGAN PAKAI HEADING '#' DI SINI!]
                        **Saran Visual:** [Saran singkat ikon, gambar latar, atau warna yang cocok. JANGAN PAKAI HEADING '#' DI SINI!]
                        ---
                        
                     5. Pastikan teks sangat *to-the-point*, hapus kata-kata berbunga-bunga yang tidak cocok untuk format gambar visual. Tuliskan dalam bahasa Indonesia yang memikat.
+                    
+                    DRAFT NASKAH:
+                    {user_input}
                     """
 
-                    model_desainer = genai.GenerativeModel(
-                        model_name="gemini-2.5-flash",
-                        system_instruction=PROMPT_DESAINER
-                    )
-                    
-                    response = model_desainer.generate_content(f"Draft Naskah:\n{user_input}")
+                    # --- SISTEM AUTO-FALLBACK MODEL AI ---
+                    try:
+                        model_desainer = genai.GenerativeModel(model_name="gemini-1.5-flash")
+                        response = model_desainer.generate_content(PROMPT_DESAINER)
+                    except Exception as inner_e:
+                        if "404" in str(inner_e):
+                            try:
+                                model_desainer = genai.GenerativeModel(model_name="gemini-1.0-pro")
+                                response = model_desainer.generate_content(PROMPT_DESAINER)
+                            except Exception:
+                                model_desainer = genai.GenerativeModel(model_name="gemini-2.5-flash")
+                                response = model_desainer.generate_content(PROMPT_DESAINER)
+                        else:
+                            raise inner_e
+
                     st.session_state.blueprint_infografis = response.text
+                    
                 except Exception as e:
-                    st.error(f"Terjadi kesalahan saat menyusun infografis: {e}")
+                    error_msg = str(e)
+                    if "429" in error_msg or "Quota exceeded" in error_msg:
+                        st.error("⏳ **Kuota AI Gratis Terlampaui!** Anda telah mencapai batas maksimal permintaan ke mesin AI untuk saat ini. Silakan tunggu sekitar **1 menit** sebelum mencoba lagi.")
+                    else:
+                        st.error(f"Terjadi kesalahan saat menyusun infografis: {e}")
 
     # --- 7. TAMPILAN HASIL AKHIR & CETAK GAMBAR ---
     if st.session_state.blueprint_infografis:
@@ -143,12 +160,24 @@ def run():
             with st.spinner("Mesin AI sedang melukis gambar Anda... (Ini memakan waktu beberapa detik)"):
                 try:
                     # 1. Terjemahkan blueprint menjadi prompt bahasa inggris yang kuat untuk Image Generator
-                    model_prompt = genai.GenerativeModel("gemini-2.5-flash")
-                    prompt_en = model_prompt.generate_content(
-                        f"Create a highly detailed image generation prompt in English for an infographic poster based on this text. Make it visually appealing, modern, clean, with appropriate colors and layout. Include dummy text elements. Limit to 1 paragraph. Text:\n{st.session_state.blueprint_infografis}"
-                    ).text
+                    prompt_minta_gambar = f"Create a highly detailed image generation prompt in English for an infographic poster based on this text. Make it visually appealing, modern, clean, with appropriate colors and layout. Include dummy text elements. Limit to 1 paragraph. Text:\n{st.session_state.blueprint_infografis}"
+                    
+                    # --- AUTO-FALLBACK UNTUK PROMPT GENERATOR ---
+                    try:
+                        model_prompt = genai.GenerativeModel(model_name="gemini-1.5-flash")
+                        prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
+                    except Exception as inner_e:
+                        if "404" in str(inner_e):
+                            try:
+                                model_prompt = genai.GenerativeModel(model_name="gemini-1.0-pro")
+                                prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
+                            except Exception:
+                                model_prompt = genai.GenerativeModel(model_name="gemini-2.5-flash")
+                                prompt_en = model_prompt.generate_content(prompt_minta_gambar).text
+                        else:
+                            raise inner_e
 
-                    # 2. Panggil API Image Generation Google (URL yang error telah diperbaiki)
+                    # 2. Panggil API Image Generation Google
                     api_key = st.secrets["GEMINI_API_KEY"]
                     url = f"[https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=](https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=){api_key}"
                     headers = {'Content-Type': 'application/json'}
@@ -157,11 +186,11 @@ def run():
                         "parameters": {"sampleCount": 1}
                     }
                     
-                    response = requests.post(url, headers=headers, json=payload)
-                    response.raise_for_status()
+                    response_img = requests.post(url, headers=headers, json=payload)
+                    response_img.raise_for_status()
                     
                     # 3. Ekstrak base64 gambar dan konversi
-                    result = response.json()
+                    result = response_img.json()
                     b64_img = result['predictions'][0]['bytesBase64Encoded']
                     img_bytes = base64.b64decode(b64_img)
                     
@@ -178,5 +207,11 @@ def run():
                         type="primary"
                     )
                     
+                except requests.exceptions.RequestException as req_err:
+                    st.error("⏳ Gagal mencetak gambar. Mesin pembuat gambar (Imagen) mungkin sedang sibuk atau kuota harian tercapai. Coba lagi nanti.")
                 except Exception as e:
-                    st.error(f"Gagal mencetak gambar: {e}")
+                    error_msg = str(e)
+                    if "429" in error_msg or "Quota exceeded" in error_msg:
+                        st.error("⏳ **Kuota AI Gratis Terlampaui!** Silakan tunggu sekitar **1 menit** sebelum mencoba cetak gambar lagi.")
+                    else:
+                        st.error(f"Gagal mencetak gambar: {e}")
