@@ -49,6 +49,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.session_state.wizard_step = 1
         st.session_state.jawaban = {
             "produk": "", 
+            "merk": "",             # Ditambahkan untuk menampung Merk/Brand
+            "jenis_spesifik": "",   # Ditambahkan untuk menampung jenis spesifik
             "poin_penting": "", 
             "tujuan": "",
             "durasi": "", 
@@ -66,6 +68,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.subheader("Langkah 1 dari 6: Produk atau Jasa")
         pilihan = st.selectbox("Apa produk atau jasa yang ingin Anda buatkan narasinya?", 
                                ["Pilih...", 
+                                "Aplikasi Sehat - Konsultan IF",
+                                "Aplikasi Expert Stock Pro - Konsultan Saham Indonesia",
                                 "Produk Kesehatan & Suplemen", 
                                 "Makanan & Minuman", 
                                 "Layanan / Jasa Komunitas", 
@@ -75,7 +79,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         
         jawaban_final = pilihan
         if pilihan == "Isi sendiri...":
-            jawaban_final = st.text_input("Sebutkan produk atau jasa Anda:")
+            jawaban_final = st.text_input("Sebutkan produk atau jasa Anda secara spesifik:")
 
         if st.button("Selanjutnya ➡️"):
             if jawaban_final and jawaban_final != "Pilih...":
@@ -90,6 +94,27 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
     # ==========================================
     elif st.session_state.wizard_step == 2:
         st.subheader("Langkah 2 dari 6: Keunggulan Utama")
+        
+        # Logika Kategori Umum (Memicu pertanyaan Merk & Jenis Spesifik)
+        produk_terpilih = st.session_state.jawaban.get("produk", "")
+        kategori_umum = [
+            "Produk Kesehatan & Suplemen", 
+            "Makanan & Minuman", 
+            "Layanan / Jasa Komunitas", 
+            "Barang Elektronik / Gadget", 
+            "Acara / Webinar"
+        ]
+
+        merk_input = ""
+        jenis_input = ""
+        
+        # Jika memilih kategori umum (bukan aplikasi khusus atau "isi sendiri")
+        if produk_terpilih in kategori_umum:
+            st.info(f"💡 Anda memilih kategori umum **{produk_terpilih}**. Mohon lengkapi detail berikut:")
+            merk_input = st.text_input("Apa Merk / Brand produk Anda?", value=st.session_state.jawaban.get("merk", ""))
+            jenis_input = st.text_input("Apa jenis produk / jasa Anda secara spesifik?", value=st.session_state.jawaban.get("jenis_spesifik", ""), placeholder="Misal: Kopi Bubuk Arabika, Jasa Bersih AC, dll")
+            st.markdown("<br>", unsafe_allow_html=True)
+
         pilihan = st.selectbox("Apa pesan utama atau keunggulan yang WAJIB disampaikan?", 
                                ["Pilih...", 
                                 "Manfaat kesehatan & bahan alami yang digunakan", 
@@ -109,12 +134,17 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                 st.rerun()
         with col2:
             if st.button("Selanjutnya ➡️"):
-                if jawaban_final and jawaban_final != "Pilih...":
+                # Validasi ekstra jika form Merk & Jenis muncul
+                if produk_terpilih in kategori_umum and (not merk_input.strip() or not jenis_input.strip()):
+                    st.warning("⚠️ Mohon isi Merk/Brand dan Jenis Spesifik terlebih dahulu.")
+                elif jawaban_final and jawaban_final != "Pilih...":
+                    st.session_state.jawaban["merk"] = merk_input
+                    st.session_state.jawaban["jenis_spesifik"] = jenis_input
                     st.session_state.jawaban["poin_penting"] = jawaban_final
                     st.session_state.wizard_step = 3
                     st.rerun()
                 else:
-                    st.warning("Mohon pilih atau isi poin penting terlebih dahulu.")
+                    st.warning("⚠️ Mohon pilih atau isi poin penting terlebih dahulu.")
 
     # ==========================================
     # LANGKAH 3: TUJUAN & DURASI
@@ -240,8 +270,18 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.divider()
         st.info("📋 **Periksa Kembali Panduan Naskah Anda:**\nSilakan edit langsung di dalam kotak jika ada yang ingin diubah sebelum diserahkan ke Direktur Kreatif.")
 
-        # Menampilkan input editable beserta penambahan Tujuan
-        edit_produk = st.text_input("1. Produk/Jasa", value=st.session_state.jawaban.get("produk", ""))
+        # Menampilkan input editable
+        edit_produk = st.text_input("1. Kategori Produk/Jasa", value=st.session_state.jawaban.get("produk", ""))
+        
+        # Tampilkan input edit merk & jenis JIKA sebelumnya diisi (atau jika mereka mengubah produk menjadi kategori umum)
+        kategori_umum = ["Produk Kesehatan & Suplemen", "Makanan & Minuman", "Layanan / Jasa Komunitas", "Barang Elektronik / Gadget", "Acara / Webinar"]
+        edit_merk = st.session_state.jawaban.get("merk", "")
+        edit_jenis = st.session_state.jawaban.get("jenis_spesifik", "")
+        
+        if edit_produk in kategori_umum or edit_merk or edit_jenis:
+            edit_merk = st.text_input("1a. Merk / Brand", value=edit_merk)
+            edit_jenis = st.text_input("1b. Jenis Spesifik", value=edit_jenis)
+
         edit_poin = st.text_input("2. Poin Penting", value=st.session_state.jawaban.get("poin_penting", ""))
         edit_tujuan = st.text_input("3. Tujuan Naskah", value=st.session_state.jawaban.get("tujuan", ""))
         
@@ -280,6 +320,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                 if jawaban_konteks and jawaban_konteks != "Pilih...":
                     st.session_state.jawaban["konteks"] = jawaban_konteks
                     st.session_state.jawaban["produk"] = edit_produk
+                    st.session_state.jawaban["merk"] = edit_merk
+                    st.session_state.jawaban["jenis_spesifik"] = edit_jenis
                     st.session_state.jawaban["poin_penting"] = edit_poin
                     st.session_state.jawaban["tujuan"] = edit_tujuan
                     st.session_state.jawaban["durasi"] = edit_durasi
@@ -318,10 +360,12 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     elif "Infografis" in st.session_state.jawaban['tujuan'] or "Infografis" in st.session_state.jawaban['konteks']:
                         instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*."
 
-                    # Menyusun prompt yang lebih rapi ke Gemini beserta info tujuan
+                    # Menyusun prompt yang lebih rapi ke Gemini beserta info Tujuan, Merk & Jenis
                     prompt_final = f"""
                     Tolong buatkan naskah berdasarkan panduan berikut:
-                    - Produk/Jasa: {st.session_state.jawaban['produk']}
+                    - Kategori Produk/Jasa: {st.session_state.jawaban['produk']}
+                    - Merk/Brand: {st.session_state.jawaban['merk'] if st.session_state.jawaban.get('merk') else '-'}
+                    - Jenis Spesifik: {st.session_state.jawaban['jenis_spesifik'] if st.session_state.jawaban.get('jenis_spesifik') else '-'}
                     - Poin Penting/Keunggulan: {st.session_state.jawaban['poin_penting']}
                     - Tujuan Pembuatan Naskah: {st.session_state.jawaban['tujuan']}
                     - Durasi Target: {st.session_state.jawaban['durasi']}
