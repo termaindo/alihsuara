@@ -112,7 +112,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         if produk_terpilih in kategori_umum:
             st.info(f"💡 Anda memilih kategori umum **{produk_terpilih}**. Mohon lengkapi detail berikut:")
             merk_input = st.text_input("Apa Merk / Brand produk Anda?", value=st.session_state.jawaban.get("merk", ""))
-            jenis_input = st.text_input("Apa jenis produk / jasa Anda secara spesifik?", value=st.session_state.jawaban.get("jenis_spesifik", ""), placeholder="Misal: Kopi Bubuk Arabika, Jasa Bersih AC, dll")
+            jenis_input = st.text_input("Apa jenis produk / jasa Anda secara spesifik?", value=st.session_state.jawaban.get("jenis_spesifik", ""), placeholder="Misal: Sabun Cair Alami, Jasa Bersih AC, dll")
             st.markdown("<br>", unsafe_allow_html=True)
 
         pilihan = st.selectbox("Apa pesan utama atau keunggulan yang WAJIB disampaikan?", 
