@@ -348,8 +348,10 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                 
             with st.spinner("Direktur sedang menyusun naskah yang natural dan berjiwa..."):
                 try:
+                    # MENGGUNAKAN gemini-1.5-flash: Memiliki kuota gratis yang jauh lebih besar (1500 request/hari) 
+                    # dibandingkan versi 2.5 yang sangat dibatasi di tier gratis.
                     model_direktur = genai.GenerativeModel(
-                        model_name="gemini-2.5-flash",
+                        model_name="gemini-1.5-flash",
                         system_instruction=DIREKTUR_PROMPT
                     )
                     
@@ -379,8 +381,14 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     st.session_state.hasil_naskah = response.text
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
-                    if st.button("Coba Lagi"):
+                    error_msg = str(e)
+                    # MENANGKAP ERROR 429 AGAR RAMAH PENGGUNA
+                    if "429" in error_msg or "Quota exceeded" in error_msg:
+                        st.error("⏳ **Kuota AI Gratis Terlampaui!** Anda telah mencapai batas maksimal permintaan beruntun ke mesin AI untuk saat ini. Silakan tunggu sekitar **1 menit** sebelum menekan tombol coba lagi.")
+                    else:
+                        st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
+                    
+                    if st.button("🔄 Coba Lagi"):
                         st.rerun()
         else:
             # Menampilkan hasil
