@@ -348,12 +348,11 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                 
             with st.spinner("Direktur sedang menyusun naskah yang natural dan berjiwa..."):
                 try:
-                    # MENGGUNAKAN gemini-1.5-flash: Memiliki kuota gratis yang jauh lebih besar (1500 request/hari) 
-                    # dibandingkan versi 2.5 yang sangat dibatasi di tier gratis.
-                    model_direktur = genai.GenerativeModel(
-                        model_name="gemini-1.5-flash",
-                        system_instruction=DIREKTUR_PROMPT
-                    )
+                    # MENGGUNAKAN gemini-pro: Alias paling stabil dan universal di semua region/versi library.
+                    # Memiliki kuota gratis besar (1500 request/hari).
+                    # Catatan teknis: system_instruction dilepas dari parameter agar kompatibel dengan versi lawas, 
+                    # dan digabungkan langsung ke dalam prompt utama.
+                    model_direktur = genai.GenerativeModel(model_name="gemini-pro")
                     
                     # Logika Hard Cap & Format Khusus
                     instruksi_tambahan_platform = ""
@@ -363,8 +362,11 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                         instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*."
 
                     # Menyusun prompt yang lebih rapi ke Gemini beserta info Tujuan, Merk & Jenis
+                    # DIREKTUR_PROMPT diletakkan langsung di dalam teks agar dibaca sempurna oleh model gemini-pro
                     prompt_final = f"""
-                    Tolong buatkan naskah berdasarkan panduan berikut:
+                    {DIREKTUR_PROMPT}
+
+                    TOLONG BUATKAN NASKAH BERDASARKAN PANDUAN BERIKUT:
                     - Kategori Produk/Jasa: {st.session_state.jawaban['produk']}
                     - Merk/Brand: {st.session_state.jawaban['merk'] if st.session_state.jawaban.get('merk') else '-'}
                     - Jenis Spesifik: {st.session_state.jawaban['jenis_spesifik'] if st.session_state.jawaban.get('jenis_spesifik') else '-'}
