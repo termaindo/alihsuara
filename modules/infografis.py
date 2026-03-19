@@ -16,7 +16,8 @@ def generate_image_with_retry(prompt, negative_prompt="", dimensi=""):
         st.warning("⚠️ Kunci HUGGINGFACE_API_KEY tidak ditemukan!")
         return None
         
-    API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+    # PERBAIKAN: Menggunakan URL router terbaru dari Hugging Face
+    API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
     headers = {"Authorization": f"Bearer {hf_key}"}
     
     # Menyesuaikan resolusi (Width & Height) sesuai pilihan pengguna
