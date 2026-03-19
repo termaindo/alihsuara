@@ -42,7 +42,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.error(f"Kredensial Gemini bermasalah: {e}")
         st.stop()
 
-    st.title("📝 Ruang 1: Rapat Naskah Direktur Kreatif")
+    st.title("📝 Ruang 1: Studio Kreasi Naskah")
 
     # --- 4. INISIALISASI STATE (WIZARD) ---
     if "wizard_step" not in st.session_state:
