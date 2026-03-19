@@ -4,43 +4,78 @@ import os
 import json
 import requests
 import base64
+import time
 
 # ==========================================
 # 🧩 1. SAFE IMAGE GENERATOR (HUGGING FACE)
 # ==========================================
-@st.cache_data(show_spinner=False, ttl=3600)
-def generate_image_cached(prompt, negative_prompt=""):
-    """Fungsi pembuat gambar dengan Hugging Face menggunakan Prompt dari Groq."""
-    try:
-        hf_key = st.secrets.get("HUGGINGFACE_API_KEY")
-        if not hf_key:
-            return None
-            
-        # Menggunakan Stable Diffusion XL via Hugging Face Inference API
-        API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
-        headers = {"Authorization": f"Bearer {hf_key}"}
+def generate_image_with_retry(prompt, negative_prompt="", dimensi=""):
+    """Fungsi pembuat gambar dengan Hugging Face yang kebal terhadap Model Loading (503) & Mendukung Dimensi."""
+    hf_key = st.secrets.get("HUGGINGFACE_API_KEY")
+    if not hf_key:
+        st.warning("⚠️ Kunci HUGGINGFACE_API_KEY tidak ditemukan!")
+        return None
         
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "negative_prompt": negative_prompt
-            }
+    API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+    headers = {"Authorization": f"Bearer {hf_key}"}
+    
+    # Menyesuaikan resolusi (Width & Height) sesuai pilihan pengguna
+    w, h = 1024, 1024 # Default Square
+    if "Portrait" in dimensi:
+        w, h = 896, 1152
+    elif "Vertical" in dimensi:
+        w, h = 768, 1344
+    elif "Landscape" in dimensi:
+        w, h = 1344, 768
+
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "negative_prompt": negative_prompt,
+            "width": w,
+            "height": h
         }
-        
+    }
+    
+    # Mekanisme Retry (Hugging Face API sering kali butuh waktu pemanasan)
+    for attempt in range(3):
         response = requests.post(API_URL, headers=headers, json=payload)
+        
         if response.status_code == 200:
             encoded = base64.b64encode(response.content).decode('utf-8')
             return f"data:image/png;base64,{encoded}"
-        return None
-    except Exception as e:
-        return None
+        elif response.status_code == 503:
+            # Jika Model Loading, tunggu 5 detik lalu coba lagi
+            time.sleep(5)
+            continue
+        else:
+            # Jika error lain (seperti kuota habis/kunci salah)
+            st.warning(f"⚠️ Pelukis AI Error: {response.text}")
+            return None
+            
+    st.warning("⚠️ Mesin Pelukis Hugging Face sedang sangat sibuk. Menggunakan Mode Cepat sementara.")
+    return None
 
-def safe_generate_image(prompt, negative_prompt=""):
-    """Wraper aman agar error pembuatan gambar tidak mematikan aplikasi."""
-    try:
-        return generate_image_cached(prompt, negative_prompt)
-    except:
-        return None
+def safe_generate_image(prompt, negative_prompt="", dimensi=""):
+    """Wraper cache cerdas agar tidak mencache kegagalan (NULL)"""
+    # Inisialisasi custom cache di session_state
+    if "img_cache" not in st.session_state:
+        st.session_state.img_cache = {}
+        
+    cache_key = f"{prompt}_{dimensi}"
+    
+    # Jika sudah sukses dilukis sebelumnya, ambil dari cache
+    if cache_key in st.session_state.img_cache:
+        return st.session_state.img_cache[cache_key]
+        
+    # Jika belum, lukis gambar baru
+    img_result = generate_image_with_retry(prompt, negative_prompt, dimensi)
+    
+    # HANYA simpan ke cache jika sukses!
+    if img_result:
+        st.session_state.img_cache[cache_key] = img_result
+        
+    return img_result
 
 def is_quota_ok():
     """Mengecek apakah API Key Hugging Face tersedia."""
@@ -52,8 +87,7 @@ def is_quota_ok():
 def generate_structured_text_groq(prompt_text, opsi_slide, opsi_dimensi):
     """
     Menggunakan Groq untuk memecah naskah menjadi JSON Slide 
-    sekaligus meracik Positive & Negative Prompt untuk Image Generator,
-    disesuaikan dengan Dimensi yang dipilih.
+    sekaligus meracik Positive & Negative Prompt untuk Image Generator.
     """
     groq_key = st.secrets.get("GROQ_API_KEY")
     if not groq_key:
@@ -80,7 +114,6 @@ Format output HARUS JSON valid dengan struktur berikut:
   ]
 }}"""
 
-    # Kita menggunakan Mode JSON dari Groq agar output dijamin tidak rusak
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
@@ -96,18 +129,15 @@ Format output HARUS JSON valid dengan struktur berikut:
     if response.status_code == 200:
         result = response.json()
         content_str = result["choices"][0]["message"]["content"]
-        # Mengekstrak array 'slides' dari JSON Object balasan Groq
         data = json.loads(content_str)
         return data.get("slides", [])
     else:
-        # Menangani error jika kuota Groq habis atau API salah
         raise Exception(f"Gagal menghubungi Groq: {response.text}")
 
 # ==========================================
 # 🧩 3. SMART VISUAL DECISION SYSTEM (SVDS)
 # ==========================================
 def decide_mode(user_mode, quota_ok, num_pages):
-    """Core Logic untuk memutuskan berapa gambar yang dirender berdasarkan kondisi."""
     if user_mode == "cepat":
         return "no_image"
     if user_mode == "visual":
@@ -235,7 +265,6 @@ def run():
 
     naskah_final = raw_text
     
-    # PERBAIKAN BUG CUT-OFF: Membuat string 3 backtick tanpa menuliskannya langsung
     bt = chr(96) * 3 
     pattern = rf"{bt}(?:text|markdown|xml)?\n(.*?)({bt})"
     match_naskah = re.search(pattern, raw_text, re.DOTALL | re.IGNORECASE)
@@ -314,16 +343,16 @@ def run():
                 st.info(f"🧠 **Keputusan SVDS:** Sistem menjalankan mode `{final_mode}`.")
                 
                 # C. IMPLEMENTASI PER MODE (HUGGING FACE)
-                with st.spinner("🎨 Merender elemen visual via Hugging Face..."):
+                with st.spinner("🎨 Merender elemen visual via Hugging Face (Harap tunggu, pelukis AI mungkin sedang bersiap)..."):
                     if final_mode == "no_image":
                         for page in pages:
                             page["image"] = None
                             
                     elif final_mode == "one_image":
-                        # Ambil prompt dari slide pertama saja
                         main_prompt = pages[0].get("image_prompt", "Professional infographic design")
                         neg_prompt = pages[0].get("negative_prompt", "ugly, text, watermark")
-                        img = safe_generate_image(main_prompt, neg_prompt)
+                        # Mengirimkan opsi_dimensi ke pelukis
+                        img = safe_generate_image(main_prompt, neg_prompt, opsi_dimensi)
                         for idx, page in enumerate(pages):
                             page["image"] = img if idx == 0 else None
                             
@@ -331,12 +360,34 @@ def run():
                         for page in pages:
                             p_prompt = page.get("image_prompt", "Minimalist vector illustration")
                             n_prompt = page.get("negative_prompt", "ugly, text, watermark")
-                            page["image"] = safe_generate_image(p_prompt, n_prompt)
+                            page["image"] = safe_generate_image(p_prompt, n_prompt, opsi_dimensi)
                 
                 # D. RENDER HTML (OUTPUT)
                 st.success("🎉 Infografis berhasil dirender!")
                 final_html = render_html_cards(pages)
                 st.components.v1.html(final_html, height=800, scrolling=True)
+                
+                # E. BAGIAN DOWNLOAD HASIL GAMBAR (BARU)
+                image_pages = [p for p in pages if p.get('image')]
+                if image_pages:
+                    st.divider()
+                    st.markdown("### 📥 Download Hasil Visual")
+                    cols = st.columns(len(image_pages))
+                    
+                    for i, page in enumerate(image_pages):
+                        b64_data = page["image"].split(",")[1]
+                        img_bytes = base64.b64decode(b64_data)
+                        
+                        with cols[i]:
+                            st.image(img_bytes, caption=f"Visual Slide {page.get('slide_number', i+1)}")
+                            st.download_button(
+                                label=f"⬇️ Download Gambar {i+1}",
+                                data=img_bytes,
+                                file_name=f"infografis_visual_slide_{page.get('slide_number', i+1)}.png",
+                                mime="image/png",
+                                use_container_width=True,
+                                key=f"dl_btn_{i}"
+                            )
                 
                 # Data Debugging untuk Ahli Developer
                 with st.expander("🛠️ Lihat Data JSON Groq Mentah (Untuk Developer)"):
