@@ -39,14 +39,15 @@ st.markdown(f"Halo, sobat **{st.session_state.nama_pengguna}**! Pilih ruangan ke
 col1, col2, col3 = st.columns(3)
 
 with col1:
+    # Teks tombol diubah, tapi nilai memorinya tetap menggunakan nama kunci yang asli
     if st.button("📝 Ruang 1: Studio Kreasi Naskah", use_container_width=True):
-        st.session_state.menu_aktif = "1. Studio Kreasi Naskah"
+        st.session_state.menu_aktif = "1. Ruang Naskah"
 with col2:
     if st.button("🚀 Ruang 2: Studio Kreasi Suara/Audio", use_container_width=True):
-        st.session_state.menu_aktif = "2. Studio Kreasi Suara/Audio"
+        st.session_state.menu_aktif = "2. Studio Rekaman"
 with col3:
     if st.button("🎨 Ruang 3: Studio Kreasi Cetak/Visual", use_container_width=True):
-        st.session_state.menu_aktif = "3. Studio Kreasi Cetak/Visual"
+        st.session_state.menu_aktif = "3. Studio Cetak"
 
 st.divider()
 
