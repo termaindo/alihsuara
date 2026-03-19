@@ -223,8 +223,8 @@ def render_html_cards(pages):
 # 🚀 MAIN APP RUNNER
 # ==========================================
 def run():
-    st.title("🎨 Ruang 3: Studio Cetak (Visual & Infografis)")
-    st.info("💡 **Ditenagai Groq Llama 3.3 70B & Hugging Face:** Modul ini telah 100% menggunakan infrastruktur Multi-AI terbaru untuk kecepatan kilat dan stabilitas Visual (SVDS).")
+    st.title("🎨 Ruang 3: Studio Kreasi Cetak/Visual")
+    st.info("💡 **Ditenagai infrastruktur Multi-AI terbaru untuk kreasi gambar untuk dibagikan atau di-posting ke berbagai Medsos.")
 
     # 1. TARIK NASKAH DARI STATE SECARA AMAN (ANTI CUT-OFF)
     raw_text = st.session_state.get("hasil_naskah", "")
