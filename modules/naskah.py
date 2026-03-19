@@ -42,7 +42,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.error(f"Kredensial Gemini bermasalah: {e}")
         st.stop()
 
-    st.title("📝 Ruang 1: Studio Kreasi Naskah")
+    st.title("📝 Ruang 1: Rapat Naskah Direktur Kreatif")
 
     # --- 4. INISIALISASI STATE (WIZARD) ---
     if "wizard_step" not in st.session_state:
@@ -365,7 +365,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
 
         if "edit_durasi_5" not in st.session_state:
             st.session_state.edit_durasi_5 = st.session_state.jawaban.get("durasi", "")
-        edit_durasi = st.text_input("7. Target Panjang/Durasi", key="edit_durasi_5")
+        edit_durasi = st.text_input("7. Target Panjang/Durasi/Slide", key="edit_durasi_5")
         
         st.divider()
         st.markdown("### 📝 Instruksi Tambahan (Opsional)")
@@ -408,10 +408,18 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
             with st.spinner("Direktur sedang menyusun naskah yang natural dan berjiwa..."):
                 try:
                     instruksi_tambahan_platform = ""
+                    durasi_target = st.session_state.jawaban['durasi']
+                    
                     if "Threads" in st.session_state.jawaban['konteks']:
                         instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Karena platform mencakup Threads, PANJANG NASKAH FINAL DI DALAM KOTAK KODE TIDAK BOLEH LEBIH DARI 500 KARAKTER (termasuk spasi)!"
                     elif "Infografis" in st.session_state.jawaban['tujuan'] or "Infografis" in st.session_state.jawaban['konteks']:
-                        instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*."
+                        instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS."
+                        
+                        # PERBAIKAN LOGIKA 1 HALAMAN:
+                        if "1 Halaman" in durasi_target:
+                            instruksi_tambahan_platform += "\n[ATURAN SUPER MUTLAK] PENGGUNA MEMINTA '1 Halaman Penuh'. KAMU WAJIB MENYATUKAN SEMUA KONTEN HANYA KE DALAM SATU (1) SLIDE SAJA! DILARANG KERAS MEMECAHNYA MENJADI SLIDE 2, SLIDE 3, DST!"
+                        else:
+                            instruksi_tambahan_platform += f"\n[ATURAN SUPER MUTLAK] Gunakan penomoran slide secara jelas (Slide 1, Slide 2, dst) dengan mematuhi target jumlah slide ini: {durasi_target}."
 
                     prompt_final = f"""
                     {DIREKTUR_PROMPT}
@@ -425,7 +433,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     - Vibe/Emosi: {st.session_state.jawaban['vibe']}
                     - Tujuan Pembuatan Naskah: {st.session_state.jawaban['tujuan']}
                     - Konteks Platform: {st.session_state.jawaban['konteks']} {instruksi_tambahan_platform}
-                    - Durasi / Panjang Target: {st.session_state.jawaban['durasi']}
+                    - Durasi / Target Panjang / Slide: {st.session_state.jawaban['durasi']}
                     - Catatan Tambahan: {st.session_state.jawaban['tambahan'] if st.session_state.jawaban['tambahan'] else "Tidak ada"}
                     """
                     
