@@ -57,7 +57,7 @@ def generate_image_with_retry(prompt, dimensi=""):
 def generate_structured_text_groq(prompt_text, opsi_slide, detail_topik, opsi_gaya):
     """
     Menggunakan Groq untuk memproduksi Multi-Slide Array,
-    dengan instruksi Dinamis (Realistik/Lukisan & Kepadatan Teks).
+    dengan instruksi SANGAT KETAT ANTI TEKS ALIEN.
     """
     groq_key = st.secrets.get("GROQ_API_KEY")
     if not groq_key:
@@ -69,13 +69,13 @@ def generate_structured_text_groq(prompt_text, opsi_slide, detail_topik, opsi_ga
         "Content-Type": "application/json"
     }
 
-    # Penentuan Gaya Gambar dan Pencegahan Halusinasi Teks
+    # Penentuan Gaya Gambar dan Pencegahan Halusinasi Teks Ekstrem
     if "Realistik" in opsi_gaya:
-        style_instruction = f"ultra-realistic product photography, 8k resolution, photorealistic, cinematic lighting, [DESKRIPSI FISIK OBJEK NYATA DARI PRODUK '{detail_topik}' DENGAN SANGAT JELAS], clean minimalist studio background, NO TEXT, no words, no letters, no typography"
-        style_rule = f"2. Isian 'image_prompt' WAJIB FOTOGRAFI REALISTIK (BUKAN LUKISAN) dan FOKUS PADA WUJUD ASLI Produk Utama ({detail_topik}). Jika produk adalah aplikasi/software, tampilkan di layar smartphone modern. WAJIB BERBAHASA INGGRIS."
+        style_instruction = f"ultra-realistic product photography, 8k resolution, cinematic lighting, [DESKRIPSI FISIK OBJEK '{detail_topik}'], clean minimalist studio background, completely textless, no UI"
+        style_rule = f"2. 'image_prompt' WAJIB FOTO REALISTIK. FOKUS HANYA PADA BENTUK FISIK PRODUK ({detail_topik}) TANPA LABEL TULISAN. Jika aplikasi, gambarkan smartphone elegan dengan layar bersinar abstrak (DILARANG menggambarkan antarmuka/UI aplikasi)."
     else:
-        style_instruction = f"professional 2d vector illustration, flat design, clean lines, vibrant colors, minimalist style, [DESKRIPSI VISUAL OBJEK DARI PRODUK '{detail_topik}' DENGAN SANGAT JELAS], NO TEXT, no words, no letters, no typography"
-        style_rule = f"2. Isian 'image_prompt' WAJIB GAYA LUKISAN/VEKTOR ILUSTRASI dan FOKUS PADA WUJUD Produk Utama ({detail_topik}). Jika produk adalah aplikasi/software, tampilkan ilustrasi smartphone. WAJIB BERBAHASA INGGRIS."
+        style_instruction = f"professional 2d vector illustration, flat design, clean lines, vibrant colors, minimalist style, [DESKRIPSI VISUAL OBJEK '{detail_topik}'], completely textless, no UI"
+        style_rule = f"2. 'image_prompt' WAJIB GAYA LUKISAN VEKTOR. FOKUS HANYA PADA BENTUK FISIK PRODUK ({detail_topik}) TANPA LABEL TULISAN. Jika aplikasi, gambarkan ilustrasi smartphone dengan layar kosong/abstrak (DILARANG menggambarkan antarmuka/UI aplikasi)."
 
     # Penentuan Kepadatan Teks Khusus 1 Slide
     slide_rule = ""
@@ -103,11 +103,12 @@ Format output HARUS JSON valid dengan struktur array 'slides' berikut:
     }}
   ]
 }}
-ATURAN MUTLAK KUALITAS: 
+ATURAN MUTLAK KUALITAS GAMBAR (PENCEGAH TEKS ALIEN): 
 1. Buat jumlah slide di dalam array "slides" TEPAT sesuai permintaan: {opsi_slide}.
 {style_rule}
 3. Gunakan Emoji yang relevan di tiap "icon_emoji".{slide_rule}
-4. ATURAN GAMBAR (SANGAT PENTING): Gambar yang dihasilkan oleh 'image_prompt' HANYALAH ilustrasi objek utama (Hero Image). DILARANG KERAS mendeskripsikan gambar sebagai 'infografis', 'poster', atau menyuruh AI menggambar teks/chart. Pastikan kamu selalu menyisipkan perintah "NO TEXT, no words, no watermark" di akhir prompt."""
+4. AI Pelukis SANGAT BURUK dalam menulis teks dan akan menghasilkan "Bahasa Alien". OLEH KARENA ITU, DILARANG KERAS mendeskripsikan elemen yang memuat teks seperti: layar aplikasi (UI), papan tulis, buku, layar monitor, teks poster, atau grafik chart. 
+5. Akhiri setiap image_prompt dengan kata: "completely textless, blank surfaces, no letters, no words"."""
 
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -489,18 +490,21 @@ def run():
                 for idx, slide in enumerate(slides):
                     slide_num = slide.get("slide_number", idx + 1)
                     
-                    # Fallback jika image_prompt kosong
-                    img_prompt = slide.get("image_prompt", f"ultra-realistic product photography of {detail_topik}, NO TEXT")
+                    # MENDAPATKAN BASE PROMPT DARI GROQ
+                    base_prompt = slide.get("image_prompt", f"ultra-realistic product photography of {detail_topik}")
+                    
+                    # LAPISAN KEAMANAN TERAKHIR (PYTHON LEVEL): Memaksa mesin FLUX untuk "Puasa Teks"
+                    safe_prompt_anti_alien = f"{base_prompt}, absolutely textless, no typography, blank screen, blank surface, no UI, no words, no letters"
                     
                     with st.spinner(f"📸 Pelukis AI FLUX.1 sedang memproduksi visual untuk Slide {slide_num} dari {total_slides} (Harap tunggu)..."):
-                        b64_img = generate_image_with_retry(img_prompt, opsi_dimensi)
+                        b64_img = generate_image_with_retry(safe_prompt_anti_alien, opsi_dimensi)
                         b64_images.append(b64_img)
                 
                 with st.spinner("📐 Web Layout Engine sedang merakit Poster Resolusi Tinggi..."):
                     # 3. Merakit HTML/CSS Kualitas Tinggi
                     final_html = render_beautiful_html_poster(structured_data, b64_images, opsi_dimensi)
                     
-                    st.success(f"🎉 {total_slides} Poster Infografis berhasil dirender dengan desain luar biasa!")
+                    st.success(f"🎉 {total_slides} Poster Infografis berhasil dirender dengan desain bebas teks alien!")
                     
                     # 4. Tampilkan HTML Interaktif
                     h_px = 1920 if "Vertical" in opsi_dimensi else (1080 if "Square" in opsi_dimensi else 1080)
