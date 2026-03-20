@@ -57,7 +57,7 @@ def generate_image_with_retry(prompt, dimensi=""):
 def generate_structured_text_groq(prompt_text, opsi_slide, detail_topik, opsi_gaya):
     """
     Menggunakan Groq untuk memproduksi Multi-Slide Array,
-    dengan instruksi SANGAT KETAT ANTI TEKS ALIEN.
+    dengan instruksi VISUAL KONSEPTUAL PREMIUM (Metafora & Human Element).
     """
     groq_key = st.secrets.get("GROQ_API_KEY")
     if not groq_key:
@@ -69,21 +69,21 @@ def generate_structured_text_groq(prompt_text, opsi_slide, detail_topik, opsi_ga
         "Content-Type": "application/json"
     }
 
-    # Penentuan Gaya Gambar dan Pencegahan Halusinasi Teks Ekstrem
+    # Penentuan Gaya Gambar Konseptual Premium
     if "Realistik" in opsi_gaya:
-        style_instruction = f"ultra-realistic product photography, 8k resolution, cinematic lighting, [DESKRIPSI FISIK OBJEK '{detail_topik}'], clean minimalist studio background, completely textless, no UI"
-        style_rule = f"2. 'image_prompt' WAJIB FOTO REALISTIK. FOKUS HANYA PADA BENTUK FISIK PRODUK ({detail_topik}) TANPA LABEL TULISAN. Jika aplikasi, gambarkan smartphone elegan dengan layar bersinar abstrak (DILARANG menggambarkan antarmuka/UI aplikasi)."
+        style_instruction = f"ultra-realistic photography, 8k resolution, cinematic lighting, highly conceptual and creative aesthetic, [DESKRIPSI VISUAL KREATIF UNTUK '{detail_topik}'], clean premium studio aesthetic, completely textless"
+        style_rule = f"2. 'image_prompt' WAJIB FOTO REALISTIK PREMIUM. JANGAN hanya mendeskripsikan benda mati, tapi buatlah KONSEPTUAL dan KREATIF!\n- Jika topiknya Aplikasi/Software: Gambarkan model profesional yang sedang menatap tersenyum ke arah smartphone, difoto dari sudut di mana isi layarnya tidak terlihat, atau fokus pada ekspresi wajah bercahaya dari layar gadget.\n- Jika topiknya Konsep (seperti Puasa IF / Saham): Gunakan metafora visual premium. Misal: Jam weker elegan berdampingan dengan piring salad segar, atau visual grafik abstrak hijau naik ke atas tanpa angka.\n- WAJIB BERBAHASA INGGRIS."
     else:
-        style_instruction = f"professional 2d vector illustration, flat design, clean lines, vibrant colors, minimalist style, [DESKRIPSI VISUAL OBJEK '{detail_topik}'], completely textless, no UI"
-        style_rule = f"2. 'image_prompt' WAJIB GAYA LUKISAN VEKTOR. FOKUS HANYA PADA BENTUK FISIK PRODUK ({detail_topik}) TANPA LABEL TULISAN. Jika aplikasi, gambarkan ilustrasi smartphone dengan layar kosong/abstrak (DILARANG menggambarkan antarmuka/UI aplikasi)."
+        style_instruction = f"professional premium 2d vector illustration, clean lines, vibrant modern colors, highly conceptual and creative metaphor, [DESKRIPSI VISUAL KREATIF UNTUK '{detail_topik}'], completely textless"
+        style_rule = f"2. 'image_prompt' WAJIB GAYA LUKISAN VEKTOR PREMIUM. Buatlah KONSEPTUAL dan KREATIF!\n- Jika topiknya Aplikasi/Software: Gambarkan karakter manusia modern yang sedang berinteraksi seru dengan smartphone raksasa, fokus pada aksi/ekspresinya, BUKAN pada tulisan antarmukanya.\n- Jika topiknya Konsep (seperti Puasa IF / Saham): Gunakan metafora cerdas. Misal: ilustrasi jam pasir dengan sayuran, atau roket meluncur ke atas sebagai metafora saham.\n- WAJIB BERBAHASA INGGRIS."
 
     # Penentuan Kepadatan Teks Khusus 1 Slide
     slide_rule = ""
     if "1 Slide" in opsi_slide:
         slide_rule = "\n[ATURAN KHUSUS 1 SLIDE]: Pengguna meminta 1 Halaman Penuh. Kamu WAJIB merangkum teks menjadi SANGAT SINGKAT dan PADAT (Maksimal 4-5 poin utama). JANGAN gunakan kalimat panjang agar tata letak poster tidak sesak/penuh!"
 
-    system_prompt = f"""Kamu adalah Ahli Desain Visual dan Prompt Engineer Profesional.
-FOKUS UTAMA PRODUK: {detail_topik}
+    system_prompt = f"""Kamu adalah Ahli Desain Visual (Art Director) dan Prompt Engineer Profesional.
+FOKUS UTAMA MATERI: {detail_topik}
 
 Tugasmu memecah teks menjadi FORMAT MULTI-SLIDE infografis padat.
 Format output HARUS JSON valid dengan struktur array 'slides' berikut:
@@ -95,7 +95,7 @@ Format output HARUS JSON valid dengan struktur array 'slides' berikut:
       "image_prompt": "{style_instruction}",
       "items": [
         {{
-          "icon_emoji": "💧",
+          "icon_emoji": "💡",
           "title": "Sub Judul",
           "content": "Penjelasan singkat maks 2 baris."
         }}
@@ -103,12 +103,12 @@ Format output HARUS JSON valid dengan struktur array 'slides' berikut:
     }}
   ]
 }}
-ATURAN MUTLAK KUALITAS GAMBAR (PENCEGAH TEKS ALIEN): 
+ATURAN MUTLAK KUALITAS VISUAL PREMIUM: 
 1. Buat jumlah slide di dalam array "slides" TEPAT sesuai permintaan: {opsi_slide}.
 {style_rule}
-3. Gunakan Emoji yang relevan di tiap "icon_emoji".{slide_rule}
-4. AI Pelukis SANGAT BURUK dalam menulis teks dan akan menghasilkan "Bahasa Alien". OLEH KARENA ITU, DILARANG KERAS mendeskripsikan elemen yang memuat teks seperti: layar aplikasi (UI), papan tulis, buku, layar monitor, teks poster, atau grafik chart. 
-5. Akhiri setiap image_prompt dengan kata: "completely textless, blank surfaces, no letters, no words"."""
+3. Gunakan Emoji yang sangat relevan dan profesional di tiap "icon_emoji".{slide_rule}
+4. AI Pelukis SANGAT BURUK dalam menulis teks ("Bahasa Alien"). Oleh karena itu, BERPIKIRLAH KREATIF MENGGUNAKAN METAFORA ATAU MANUSIA. DILARANG KERAS menyuruh AI menggambar kata, huruf, angka, teks poster, UI aplikasi, papan tulis, atau layar monitor yang menampilkan tulisan.
+5. Akhiri setiap image_prompt dengan kata penangkal: "completely textless, no letters, no words, no numbers, clean blank surface"."""
 
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -338,7 +338,6 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi):
                 font-family: 'Montserrat', sans-serif;
             }}
             
-            /* Penambahan style khusus URL */
             .footer-url {{
                 font-size: 18px;
                 font-weight: 500;
@@ -408,7 +407,7 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi):
 # ==========================================
 def run():
     st.title("🎨 Ruang 3: Studio Cetak (Visual & Infografis)")
-    st.info("💡 **Ditenagai Groq Llama 3.3 70B & Hugging Face:** Desain kini dibekali **Pilihan Gaya Visual** dan pengaturan pemadatan teks otomatis untuk hasil profesional yang lebih memukau.")
+    st.info("💡 **Ditenagai Groq Llama 3.3 70B & Hugging Face:** Desain kini dibekali **Pilihan Gaya Visual Konseptual** (menggunakan metafora visual / human element) agar gambar terlihat lebih hidup, elegan, dan profesional.")
 
     raw_text = st.session_state.get("hasil_naskah", "")
     if not raw_text:
@@ -440,8 +439,8 @@ def run():
         opsi_gaya = st.selectbox(
             "2. Gaya Visual / Ilustrasi:",
             [
-                "📸 Gaya Foto Realistik (Nyata & Profesional)",
-                "🎨 Gaya Lukisan (Vektor / Ilustrasi Digital)"
+                "📸 Gaya Foto Realistik (Nyata, Konseptual & Profesional)",
+                "🎨 Gaya Lukisan (Vektor / Ilustrasi Digital Cerdas)"
             ], index=0
         )
         
@@ -463,7 +462,7 @@ def run():
 
     user_input = st.text_area("Draft Naskah Dasar:", value=naskah_final, height=150)
 
-    if st.button("✨ Hasilkan Poster Berkualitas", use_container_width=True, type="primary"):
+    if st.button("✨ Hasilkan Poster Konseptual", use_container_width=True, type="primary"):
         if not jawaban_slide.strip():
             st.warning("⚠️ Mohon lengkapi Mode Format terlebih dahulu!")
             return
@@ -472,14 +471,14 @@ def run():
             st.warning("⚠️ Draft naskah tidak boleh kosong!")
             return
             
-        with st.spinner("🤖 Groq Llama 3.3 sedang menstrukturkan desain presentasi..."):
+        with st.spinner("🤖 Art Director AI sedang merancang metafora visual yang kreatif..."):
             try:
                 # Menarik konteks produk
                 produk_name = st.session_state.jawaban.get("produk", "Produk Utama")
                 merk_name = st.session_state.jawaban.get("merk", "")
                 detail_topik = f"{merk_name} {produk_name}".strip()
                 
-                # 1. Analisis Naskah dengan Groq (JSON Setup dengan Mode Gaya & 1 Slide Padat)
+                # 1. Analisis Naskah dengan Groq
                 structured_data = generate_structured_text_groq(user_input, jawaban_slide, detail_topik, opsi_gaya)
                 slides = structured_data.get("slides", [])
                 total_slides = len(slides)
@@ -491,20 +490,20 @@ def run():
                     slide_num = slide.get("slide_number", idx + 1)
                     
                     # MENDAPATKAN BASE PROMPT DARI GROQ
-                    base_prompt = slide.get("image_prompt", f"ultra-realistic product photography of {detail_topik}")
+                    base_prompt = slide.get("image_prompt", f"ultra-realistic photography conceptual metaphor for {detail_topik}")
                     
-                    # LAPISAN KEAMANAN TERAKHIR (PYTHON LEVEL): Memaksa mesin FLUX untuk "Puasa Teks"
-                    safe_prompt_anti_alien = f"{base_prompt}, absolutely textless, no typography, blank screen, blank surface, no UI, no words, no letters"
+                    # LAPISAN KEAMANAN TERAKHIR
+                    safe_prompt = f"{base_prompt}, completely textless, no letters, no words, no numbers, clean surface"
                     
                     with st.spinner(f"📸 Pelukis AI FLUX.1 sedang memproduksi visual untuk Slide {slide_num} dari {total_slides} (Harap tunggu)..."):
-                        b64_img = generate_image_with_retry(safe_prompt_anti_alien, opsi_dimensi)
+                        b64_img = generate_image_with_retry(safe_prompt, opsi_dimensi)
                         b64_images.append(b64_img)
                 
                 with st.spinner("📐 Web Layout Engine sedang merakit Poster Resolusi Tinggi..."):
                     # 3. Merakit HTML/CSS Kualitas Tinggi
                     final_html = render_beautiful_html_poster(structured_data, b64_images, opsi_dimensi)
                     
-                    st.success(f"🎉 {total_slides} Poster Infografis berhasil dirender dengan desain bebas teks alien!")
+                    st.success(f"🎉 {total_slides} Poster Infografis berhasil dirender dengan visual konseptual premium!")
                     
                     # 4. Tampilkan HTML Interaktif
                     h_px = 1920 if "Vertical" in opsi_dimensi else (1080 if "Square" in opsi_dimensi else 1080)
@@ -512,7 +511,7 @@ def run():
                     
                     st.components.v1.html(final_html, height=iframe_height, scrolling=True)
                     
-                    with st.expander("🛠️ Lihat Data Struktur Poin (JSON)"):
+                    with st.expander("🛠️ Lihat Data Struktur Poin (JSON) & Prompt Rahasia AI"):
                         st.json(structured_data)
 
             except Exception as e:
