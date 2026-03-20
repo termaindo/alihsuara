@@ -69,13 +69,13 @@ def generate_structured_text_groq(prompt_text, opsi_slide, detail_topik, opsi_ga
         "Content-Type": "application/json"
     }
 
-    # Penentuan Gaya Gambar
+    # Penentuan Gaya Gambar dan Pencegahan Halusinasi Teks
     if "Realistik" in opsi_gaya:
-        style_instruction = f"ultra-realistic product photography, 8k resolution, photorealistic, cinematic lighting, [DESKRIPSI FISIK BENDA NYATA DARI PRODUK '{detail_topik}'], clean minimalist studio background"
-        style_rule = f"2. Isian 'image_prompt' WAJIB FOTOGRAFI REALISTIK (BUKAN LUKISAN) dan FOKUS pada Produk Utama ({detail_topik})."
+        style_instruction = f"ultra-realistic product photography, 8k resolution, photorealistic, cinematic lighting, [DESKRIPSI FISIK OBJEK NYATA DARI PRODUK '{detail_topik}' DENGAN SANGAT JELAS], clean minimalist studio background, NO TEXT, no words, no letters, no typography"
+        style_rule = f"2. Isian 'image_prompt' WAJIB FOTOGRAFI REALISTIK (BUKAN LUKISAN) dan FOKUS PADA WUJUD ASLI Produk Utama ({detail_topik}). Jika produk adalah aplikasi/software, tampilkan di layar smartphone modern. WAJIB BERBAHASA INGGRIS."
     else:
-        style_instruction = f"professional 2d vector illustration, flat design, clean lines, vibrant colors, minimalist infographic style, [DESKRIPSI VISUAL ILUSTRASI DARI PRODUK '{detail_topik}']"
-        style_rule = f"2. Isian 'image_prompt' WAJIB GAYA LUKISAN/VEKTOR ILUSTRASI dan FOKUS pada Produk Utama ({detail_topik})."
+        style_instruction = f"professional 2d vector illustration, flat design, clean lines, vibrant colors, minimalist style, [DESKRIPSI VISUAL OBJEK DARI PRODUK '{detail_topik}' DENGAN SANGAT JELAS], NO TEXT, no words, no letters, no typography"
+        style_rule = f"2. Isian 'image_prompt' WAJIB GAYA LUKISAN/VEKTOR ILUSTRASI dan FOKUS PADA WUJUD Produk Utama ({detail_topik}). Jika produk adalah aplikasi/software, tampilkan ilustrasi smartphone. WAJIB BERBAHASA INGGRIS."
 
     # Penentuan Kepadatan Teks Khusus 1 Slide
     slide_rule = ""
@@ -106,7 +106,8 @@ Format output HARUS JSON valid dengan struktur array 'slides' berikut:
 ATURAN MUTLAK KUALITAS: 
 1. Buat jumlah slide di dalam array "slides" TEPAT sesuai permintaan: {opsi_slide}.
 {style_rule}
-3. Gunakan Emoji yang relevan di tiap "icon_emoji".{slide_rule}"""
+3. Gunakan Emoji yang relevan di tiap "icon_emoji".{slide_rule}
+4. ATURAN GAMBAR (SANGAT PENTING): Gambar yang dihasilkan oleh 'image_prompt' HANYALAH ilustrasi objek utama (Hero Image). DILARANG KERAS mendeskripsikan gambar sebagai 'infografis', 'poster', atau menyuruh AI menggambar teks/chart. Pastikan kamu selalu menyisipkan perintah "NO TEXT, no words, no watermark" di akhir prompt."""
 
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -489,7 +490,7 @@ def run():
                     slide_num = slide.get("slide_number", idx + 1)
                     
                     # Fallback jika image_prompt kosong
-                    img_prompt = slide.get("image_prompt", f"ultra-realistic product photography of {detail_topik}")
+                    img_prompt = slide.get("image_prompt", f"ultra-realistic product photography of {detail_topik}, NO TEXT")
                     
                     with st.spinner(f"📸 Pelukis AI FLUX.1 sedang memproduksi visual untuk Slide {slide_num} dari {total_slides} (Harap tunggu)..."):
                         b64_img = generate_image_with_retry(img_prompt, opsi_dimensi)
