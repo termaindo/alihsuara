@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 import calendar
 import io 
+import google.generativeai as genai # Tambahan wajib untuk AI Pengecek Naskah
 
 # --- KONFIGURASI KUOTA ---
 FILE_KUOTA = "pemakaian_tts.json"
@@ -28,7 +29,6 @@ def run():
 
     # --- 1. SETUP KREDENSIAL GOOGLE CLOUD & DRIVE ---
     try:
-        # PERBAIKAN ERROR: Kode kini memanggil tepat "GCP_CREDENTIALS" sesuai dengan di st.secrets Bapak
         gcp_creds = st.secrets["GCP_CREDENTIALS"]
         if isinstance(gcp_creds, str):
             gcp_creds_dict = json.loads(gcp_creds)
@@ -135,7 +135,7 @@ def run():
         sisa_hari = hitung_sisa_hari()
         st.warning(f"⚠️ **PERHATIAN: KUOTA HAMPIR HABIS!**\nAnda telah menggunakan {pemakaian_saat_ini:,} karakter. Harap berhemat. Kuota Google TTS Anda akan otomatis di-reset menjadi nol (0) dalam **{sisa_hari} hari** lagi.")
 
-    # --- 2. LOGIKA PENARIKAN & PENYIMPANAN DATA OTOMATIS ---
+    # --- 2. LOGIKA PENARIKAN, ADAPTASI OTOMATIS AI, & PENYIMPANAN DATA ---
     if "naskah_vo" not in st.session_state:
         st.session_state.naskah_vo = ""
     if "last_raw_naskah" not in st.session_state:
@@ -156,15 +156,46 @@ def run():
             st.session_state.last_raw_naskah = raw_text 
             
             bt = "```" 
-            pattern = rf"{bt}(?:text|markdown)?\n(.*?){bt}"
+            pattern = rf"{bt}(?:text|markdown|ssml|xml)?\n(.*?){bt}"
             match_naskah = re.search(pattern, raw_text, re.DOTALL | re.IGNORECASE)
             
+            extracted_text = raw_text
             if match_naskah:
-                st.session_state.naskah_vo = match_naskah.group(1).strip()
-                st.success("✅ Naskah baru berhasil ditarik otomatis dari Studio Kreasi Naskah!")
+                extracted_text = match_naskah.group(1).strip()
+            
+            # FITUR BARU: AI AUTO-ADAPT (MENGUBAH INFOGRAFIS KE SSML)
+            if "<speak>" not in extracted_text.lower() and len(extracted_text) > 10:
+                with st.spinner("🪄 Merombak naskah visual menjadi skrip suara (SSML) secara otomatis..."):
+                    try:
+                        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+                        model_adaptasi = genai.GenerativeModel("gemini-2.5-flash")
+                        
+                        PROMPT_ADAPTASI = f"""
+Kamu adalah Ahli Voice Over dan Scriptwriter Profesional.
+Teks di bawah ini mungkin berasal dari draft infografis (mengandung kata 'Slide', 'Judul', poin-poin, ikon emoji) atau teks tulisan biasa.
+TUGASMU:
+1. Ubah teks tersebut menjadi skrip narasi utuh yang mengalir, natural, dan sangat enak didengar.
+2. HAPUS SEMUA elemen visual cetak secara mutlak (seperti kata "Slide 1", "Subjudul", "Judul", ikon emoji, poin peluru dll).
+3. WAJIB ubah menjadi format SSML (Speech Synthesis Markup Language).
+4. Harus diawali dengan tag <speak> dan diakhiri dengan </speak>.
+5. Tambahkan jeda napas yang pas menggunakan <break time="400ms"/> atau <break time="600ms"/> antar kalimat.
+6. Berikan penekanan emosi pada kata-kata penting menggunakan <prosody pitch="+1st" rate="1.1">teks</prosody>.
+7. OUTPUT HANYA KODE SSML MURNI. Jangan gunakan format markdown (jangan pakai ```xml).
+
+Teks Asli:
+{extracted_text}
+                        """
+                        response = model_adaptasi.generate_content(PROMPT_ADAPTASI)
+                        hasil_ssml = response.text.replace("```xml", "").replace("```ssml", "").replace("```html", "").replace("```", "").strip()
+                        
+                        st.session_state.naskah_vo = hasil_ssml
+                        st.success("✅ Ajaib! Naskah visual telah diadaptasi otomatis menjadi skrip SSML siap rekam!")
+                    except Exception as e:
+                        st.session_state.naskah_vo = extracted_text
+                        st.warning("⚠️ Gagal mengadaptasi ke SSML otomatis. Menampilkan naskah asli.")
             else:
-                st.session_state.naskah_vo = raw_text
-                st.info("💡 Naskah ditarik tanpa filter blok kode.")
+                st.session_state.naskah_vo = extracted_text
+                st.success("✅ Naskah SSML ditarik otomatis dari Studio Kreasi Naskah!")
     else:
         if not st.session_state.naskah_vo:
             st.info("💡 Belum ada naskah dari Studio Kreasi Naskah. Silakan buat naskah dulu atau ketik manual di bawah.")
