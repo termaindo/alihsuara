@@ -13,7 +13,7 @@ def generate_image_with_retry(prompt, dimensi=""):
     """Menggunakan model FLUX.1. Jika gagal/sibuk, fallback ke SDXL."""
     hf_key = st.secrets.get("HUGGINGFACE_API_KEY")
     if not hf_key:
-        return None
+        raise Exception("HUGGINGFACE_ERROR|Kunci API Hugging Face tidak ditemukan di sistem.")
         
     headers = {"Authorization": f"Bearer {hf_key}"}
     
@@ -38,7 +38,7 @@ def generate_image_with_retry(prompt, dimensi=""):
         "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
     ]
     
-    last_error = ""
+    last_error = "Unknown Error"
     for api_url in models_to_try:
         for attempt in range(2):
             try:
@@ -53,11 +53,12 @@ def generate_image_with_retry(prompt, dimensi=""):
                     last_error = response.text
                     break # Gagal di model ini, pindah ke model cadangan
             except Exception as e:
+                last_error = str(e)
                 time.sleep(3)
                 continue
                 
-    st.error(f"Mesin Pelukis AI Server Publik sedang penuh/habis kuota. Detail: {last_error}")
-    return None
+    # Jika semua percobaan gagal, lemparkan error bersih ke sistem utama
+    raise Exception(f"HUGGINGFACE_ERROR|{last_error}")
 
 # ==========================================
 # 🧩 2. GROQ Llama 3.3 70B WRAPPER
@@ -334,7 +335,7 @@ def run():
     
     # === FITUR UPLOAD GAMBAR DENGAN TAMPILAN JELAS DAN BESAR ===
     st.markdown("### 📸 Upload Gambar Produk (SANGAT DISARANKAN)")
-    st.info("💡 **Tips Anti Gagal:** Mengunggah foto produk atau screenshot aplikasi Anda sendiri di sini akan **menjamin 100% desain jadi tanpa error/kosong**. Server lukis publik sering kali penuh atau kehabisan kuota!")
+    st.info("💡 **Tips Anti Gagal:** Mengunggah foto produk atau screenshot aplikasi Anda sendiri di sini akan **menjamin 100% desain jadi tanpa error/kosong**. Server lukis publik sering kali penuh atau kehabisan kuota bulanan!")
     
     uploaded_file = st.file_uploader("Upload Foto Asli Anda di sini (Format: PNG, JPG, JPEG):", type=["png", "jpg", "jpeg"])
 
@@ -374,21 +375,15 @@ def run():
                     slide_num = slide.get("slide_number", idx + 1)
                     
                     if user_b64_img:
-                        # Langsung gunakan gambar dari user (Dijamin 100% Cepat & Berhasil)
+                        # Langsung gunakan gambar dari user
                         b64_images.append(user_b64_img)
                     else:
                         base_prompt = slide.get("image_prompt", f"ultra-realistic photography for {detail_topik}")
                         safe_prompt = f"{base_prompt}, completely textless, no letters, no words, clean surface"
                         
                         with st.spinner(f"📸 Pelukis AI sedang memproduksi visual Slide {slide_num}/{total_slides}..."):
+                            # Sekarang kita membiarkan error terlempar keluar jika gagal
                             b64_img = generate_image_with_retry(safe_prompt, opsi_dimensi)
-                            
-                            # Jika AI gagal/sibuk dan user TIDAK upload foto, hentikan proses agar tidak muncul poster kosong
-                            if not b64_img:
-                                st.warning(f"⚠️ Server AI Pelukis gagal memuat gambar untuk Slide {slide_num}.")
-                                st.error("💡 Solusi Tercepat: Silakan UPLOAD FOTO PRODUK Anda secara manual di menu kotak 'Upload Gambar Produk' di atas, lalu klik tombol Hasilkan Poster lagi.")
-                                st.stop()
-                                
                             b64_images.append(b64_img)
                 
                 with st.spinner("📐 Web Layout Engine sedang merakit Poster Resolusi Tinggi..."):
@@ -398,7 +393,7 @@ def run():
                     if user_b64_img:
                         st.success(f"🎉 {total_slides} Poster berhasil dirender menggunakan FOTO ASLI ANDA!")
                     else:
-                        st.success(f"🎉 {total_slides} Poster berhasil dirender dengan AI!")
+                        st.success(f"🎉 {total_slides} Poster berhasil dirender dengan AI Pelukis!")
                     
                     # 4. Tampilkan HTML Interaktif
                     h_px = 1920 if "Vertical" in opsi_dimensi else (1080 if "Square" in opsi_dimensi else 1080)
@@ -409,13 +404,26 @@ def run():
             # --- ERROR HANDLING PROFESIONAL ---
             except Exception as e:
                 error_msg = str(e)
-                if "FORMAT_JSON_RUSAK" in error_msg or "Expecting value" in error_msg:
-                    st.error("⏳ **Mesin AI Sedang Sibuk (Overload):** Server Groq sedang mengalami antrean padat sehingga respons terpotong di tengah jalan. Silakan klik tombol **Hasilkan Poster Berkualitas** sekali lagi.")
+                
+                if "HUGGINGFACE_ERROR" in error_msg:
+                    raw_err = error_msg.split("|")[1] if "|" in error_msg else error_msg
+                    
+                    if "depleted" in raw_err.lower() or "credits" in raw_err.lower():
+                        st.error("❌ **Kuota Pelukis AI Habis:** Akun Hugging Face Anda telah mencapai batas pemakaian bulanan gratis.")
+                    else:
+                        st.error("⏳ **Server AI Pelukis Sibuk:** Server Hugging Face publik sedang mengalami antrean penuh. Pembuatan gambar ditolak.")
+                    
+                    st.info("💡 **SOLUSI TERCEPAT & TERBAIK:** \nJangan khawatir! Silakan gunakan menu **📸 Upload Gambar Produk** di atas untuk mengunggah foto asli Anda sendiri. Dengan cara ini, sistem tidak akan bergantung pada AI Pelukis dan poster Anda **DIJAMIN 100% SELESAI** dalam hitungan detik!")
+                    
+                    with st.expander("🛠️ Lihat Detail Teknis (Untuk Developer)"):
+                        st.code(raw_err)
+                        
+                elif "FORMAT_JSON_RUSAK" in error_msg or "Expecting value" in error_msg:
+                    st.error("⏳ **Mesin AI Teks Sedang Sibuk:** Server Groq sedang mengalami antrean padat sehingga respons terpotong di tengah jalan. Silakan klik tombol **Hasilkan Poster** sekali lagi.")
                 elif "API_ERROR" in error_msg or "429" in error_msg:
-                    st.error("⏳ **Kuota Server Penuh:** Layanan AI mencapai batas maksimal permintaan sesaat. Mohon tunggu beberapa detik sebelum mencoba kembali.")
+                    st.error("⏳ **Kuota Server Penuh:** Layanan AI mencapai batas maksimal permintaan. Mohon tunggu beberapa detik sebelum mencoba kembali.")
                 else:
                     st.error("❌ **Terjadi Gangguan Komunikasi dengan Server AI.** Silakan coba kembali dalam beberapa saat.")
-                    # Menyembunyikan error teknis di dalam expander khusus
                     with st.expander("🛠️ Lihat Detail Teknis (Untuk Developer)"):
                         st.code(error_msg)
 
