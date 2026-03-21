@@ -28,7 +28,7 @@ ATURAN NASKAH (SANGAT PENTING):
 - Jika platform/tujuan untuk "Audio" atau "Video", gunakan format SSML agar suara AI Google Wavenet terdengar natural.
   Contoh: Awali dengan <speak> dan akhiri </speak>. Gunakan <break time="400ms"/> untuk jeda napas. Gunakan <prosody pitch="+1st" rate="1.1">teks</prosody> untuk penekanan.
 - Jika platform/tujuan untuk "Infografis", DILARANG menggunakan SSML. Gunakan Bullet Points (Slide 1, Slide 2, dst) yang sangat padat dan singkat.
-- Jika platform/tujuan untuk "Caption/Pesan Teks", DILARANG menggunakan SSML. Gunakan gaya penulisan copywriting dengan emoji yang menarik.
+- Jika platform/tujuan untuk "Caption/Pesan Teks" atau "Copywriting", DILARANG menggunakan SSML. Gunakan gaya penulisan copywriting dengan emoji yang menarik.
     """
 
     # --- 3. SETUP KREDENSIAL GEMINI ---
@@ -121,14 +121,14 @@ ATURAN NASKAH (SANGAT PENTING):
                     st.warning("Mohon pilih atau isi poin penting terlebih dahulu.")
 
     # ==========================================
-    # LANGKAH 3: TUJUAN & DURASI
+    # LANGKAH 3: TUJUAN & DURASI (DINAMIS PATEN)
     # ==========================================
     elif st.session_state.wizard_step == 3:
         st.subheader("Langkah 3 dari 6: Tujuan & Target Panjang/Durasi")
         
         pilihan_tujuan = st.selectbox("Apa tujuan pembuatan naskah ini?", 
                                ["Pilih...", 
-                                "Copywriting / Naskah Iklan / Promosi", 
+                                "Teks Copywriting / Naskah Iklan / Promosi", 
                                 "Naskah Rekaman Audio", 
                                 "Naskah Suara Penjelasan di Video",
                                 "Teks Infografis / Presentasi Visual", 
@@ -140,14 +140,26 @@ ATURAN NASKAH (SANGAT PENTING):
 
         st.markdown("<br>", unsafe_allow_html=True) 
 
-        pilihan_durasi = st.selectbox("Berapa panjang atau target durasi naskah Anda?", 
-                               ["Pilih...", "15 detik (Singkat / Iklan Cepat / Pesan Pendek)", "30 detik (Standar Iklan/Reels/Caption Menedah)", "60 detik (Edukasi / Penjelasan Lengkap)", "Isi Sendiri ..."])
+        # --- LOGIKA DROPDOWN DINAMIS BERDASARKAN TUJUAN ---
+        opsi_durasi = ["Pilih..."]
+        
+        if jawaban_tujuan != "Pilih...":
+            if "Audio" in jawaban_tujuan or "Video" in jawaban_tujuan:
+                opsi_durasi.extend(["15 detik (Singkat / Iklan Cepat)", "30 detik (Standar Iklan/Reels)", "60 detik (Edukasi / Penjelasan Lengkap)", "Isi Sendiri ..."])
+            elif "Copywriting" in jawaban_tujuan or "Iklan" in jawaban_tujuan:
+                opsi_durasi.extend(["1 Paragraf Singkat (Caption IG/WA/Tiktok)", "2-3 Paragraf (Email/Brosur/Artikel Pendek)", "Maksimal 500 Kata (Detail Lengkap)", "Isi Sendiri ..."])
+            elif "Infografis" in jawaban_tujuan or "Visual" in jawaban_tujuan:
+                opsi_durasi.extend(["1 Slide Penuh (Poster Tunggal)", "3 Slide (Carousel Singkat)", "5 Slide (Carousel Standar)", "7-10 Slide (Carousel Maksimal)", "Isi Sendiri ..."])
+            else:
+                opsi_durasi.extend(["Pendek", "Sedang", "Panjang", "Isi Sendiri ..."]) # Fallback jika isi sendiri tidak terbaca kata kuncinya
+
+        pilihan_durasi = st.selectbox("Berapa panjang atau target durasi/ukuran naskah Anda?", opsi_durasi)
         
         jawaban_durasi = pilihan_durasi
         if pilihan_durasi == "Isi Sendiri ...":
-            jawaban_durasi = st.text_input("Masukkan target panjang naskah (misal: 45 detik, 2 paragraf, atau 5 slide):")
+            jawaban_durasi = st.text_input("Masukkan target ukuran naskah Anda secara spesifik:")
             
-            # --- LOGIKA PEMBATASAN DURASI (HARD CAP 180 DETIK) ---
+            # --- LOGIKA PEMBATASAN DURASI WAKTU (HARD CAP 180 DETIK) ---
             if jawaban_durasi:
                 angka_ditemukan = re.findall(r'\d+', jawaban_durasi)
                 if angka_ditemukan:
