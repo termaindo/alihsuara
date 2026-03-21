@@ -283,12 +283,12 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi):
 # 🚀 MAIN APP RUNNER
 # ==========================================
 def run():
-    st.title("🎨 Ruang 3: Studio Cetak (Visual & Infografis)")
+    st.title("🎨 Ruang 3: Studio Kreasi Cetak / Visual")
     st.info("💡 **Informasi:** Studio ini ditenagai oleh Kecerdasan Buatan (AI) Desain Visual Profesional tingkat lanjut untuk merangkai tata letak dan gambar berkualitas tinggi secara otomatis.")
 
     raw_text = st.session_state.get("hasil_naskah", "")
     if not raw_text:
-        st.warning("Belum ada naskah yang ditarik. Silakan buat naskah terlebih dahulu di Ruang 1 (Rapat Naskah).")
+        st.warning("Belum ada naskah yang ditarik. Silakan buat naskah terlebih dahulu di Ruang 1 (Studio Kreasi Naskah).")
         return
 
     naskah_final = raw_text
@@ -298,7 +298,7 @@ def run():
     
     if match_naskah:
         naskah_final = match_naskah.group(1).strip()
-        st.success("✅ Naskah dasar berhasil ditarik otomatis dari Ruang 1!")
+        st.success("✅ Naskah dasar berhasil ditarik otomatis dari Studio Kreasi Naskah!")
 
     st.markdown("### 🎛️ Pengaturan Sistem & Desain")
     
@@ -432,10 +432,10 @@ def run():
     
     col_nav1, col_nav2 = st.columns(2)
     with col_nav1:
-        if st.button("🎙️ Ke Studio Rekaman (VO)", use_container_width=True):
-            st.session_state.menu_aktif = "2. Studio Rekaman"
+        if st.button("🎙️ Ke Studio Kreasi Suara / Audio", use_container_width=True):
+            st.session_state.menu_aktif = "2. Studio Kreasi Suara / Audio"
             st.rerun()
     with col_nav2:
-        if st.button("📝 Kembali ke Ruang Naskah", use_container_width=True):
-            st.session_state.menu_aktif = "1. Ruang Naskah"
+        if st.button("📝 Kembali ke Studio Kreasi Naskah", use_container_width=True):
+            st.session_state.menu_aktif = "1. Studio Kreasi Naskah"
             st.rerun()
