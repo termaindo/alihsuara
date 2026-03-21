@@ -284,7 +284,7 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi):
 # ==========================================
 def run():
     st.title("🎨 Ruang 3: Studio Cetak (Visual & Infografis)")
-    st.info("💡 **Ditenagai Groq Llama 3.3 70B & Hugging Face.**")
+    st.info("💡 **Informasi:** Studio ini ditenagai oleh Kecerdasan Buatan (AI) Desain Visual Profesional tingkat lanjut untuk merangkai tata letak dan gambar berkualitas tinggi secara otomatis.")
 
     raw_text = st.session_state.get("hasil_naskah", "")
     if not raw_text:
@@ -409,9 +409,9 @@ def run():
                     raw_err = error_msg.split("|")[1] if "|" in error_msg else error_msg
                     
                     if "depleted" in raw_err.lower() or "credits" in raw_err.lower():
-                        st.error("❌ **Kuota Pelukis AI Habis:** Akun Hugging Face Anda telah mencapai batas pemakaian bulanan gratis.")
+                        st.error("❌ **Kuota Pelukis AI Habis:** Akun Anda telah mencapai batas pemakaian bulanan gratis.")
                     else:
-                        st.error("⏳ **Server AI Pelukis Sibuk:** Server Hugging Face publik sedang mengalami antrean penuh. Pembuatan gambar ditolak.")
+                        st.error("⏳ **Server AI Pelukis Sibuk:** Server publik sedang mengalami antrean penuh. Pembuatan gambar ditolak.")
                     
                     st.info("💡 **SOLUSI TERCEPAT & TERBAIK:** \nJangan khawatir! Silakan gunakan menu **📸 Upload Gambar Produk** di atas untuk mengunggah foto asli Anda sendiri. Dengan cara ini, sistem tidak akan bergantung pada AI Pelukis dan poster Anda **DIJAMIN 100% SELESAI** dalam hitungan detik!")
                     
@@ -419,7 +419,7 @@ def run():
                         st.code(raw_err)
                         
                 elif "FORMAT_JSON_RUSAK" in error_msg or "Expecting value" in error_msg:
-                    st.error("⏳ **Mesin AI Teks Sedang Sibuk:** Server Groq sedang mengalami antrean padat sehingga respons terpotong di tengah jalan. Silakan klik tombol **Hasilkan Poster** sekali lagi.")
+                    st.error("⏳ **Mesin AI Teks Sedang Sibuk:** Server sedang mengalami antrean padat sehingga respons terpotong di tengah jalan. Silakan klik tombol **Hasilkan Poster Berkualitas** sekali lagi.")
                 elif "API_ERROR" in error_msg or "429" in error_msg:
                     st.error("⏳ **Kuota Server Penuh:** Layanan AI mencapai batas maksimal permintaan. Mohon tunggu beberapa detik sebelum mencoba kembali.")
                 else:
