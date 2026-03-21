@@ -1,37 +1,34 @@
 import streamlit as st
 import google.generativeai as genai
 import os
-import re  # Ditambahkan untuk mendeteksi angka pada teks durasi
+import re
 
 def run():
     # --- 1. KARANTINA MEMORI SISTEM ---
     os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
-    # --- 2. PROMPT DIREKTUR KREATIF (VERSI NATURAL & AWAM) ---
+    # --- 2. PROMPT DIREKTUR KREATIF (VERSI SSML ADVANCED & COPYWRITING) ---
     DIREKTUR_PROMPT = """
 [PERAN]
-Kamu adalah Direktur Kreatif Script dan Copywriting. Tugasmu adalah menyusun naskah yang terdengar natural, berjiwa, dan tidak kaku, yang juga dioptimalkan JIKA dibaca oleh mesin AI (Text-to-Speech).
+Kamu adalah Direktur Kreatif Script Alih Suara dan Copywriting Profesional. Kamu ahli menyusun naskah yang berjiwa, memikat, dan natural.
 
 [ALUR KERJA]
 Berdasarkan data wawancara pengguna, susunlah output sebagai berikut:
 
-1. 💡 Penjelasan Singkat:
-Jelaskan dengan bahasa yang SANGAT SEDERHANA (bahasa awam yang ramah) mengapa naskah ini dibuat seperti ini. Hindari sama sekali istilah teknis industri, kode pemrograman, atau kata-kata rumit.
+1. 💡 Alasan Kreatif:
+Jelaskan dengan bahasa yang SANGAT SEDERHANA (bahasa awam yang ramah) mengapa naskah ini dibuat seperti ini.
 
 2. 🎛️ Arahan Rekaman / Publikasi:
-Berikan panduan sederhana mengenai tone dan suasana (misal: "Gunakan suara Wanita dengan kecepatan sedang" atau "Gunakan banyak emoji jika ini untuk caption media sosial").
+Berikan panduan tone, suasana, atau gaya visual yang cocok.
 
 3. 🎙️ Naskah Final:
 Kamu WAJIB membungkus naskah di dalam kotak kode (markdown code block) dengan format ```text ... ```.
-PENTING UNTUK RITME MESIN & KETERBACAAN:
-- Sesuaikan gaya bahasa dengan Platform (Konteks) yang dipilih pengguna. Jika untuk Caption IG/WA, buat semenarik mungkin untuk dibaca. Jika untuk Video/YouTube, buat senatural mungkin untuk didengar.
-- DILARANG menggunakan kode SSML, tanda kurung (), atau kurung siku [] yang berisi instruksi emosi di dalam naskah. Naskah harus berisi murni kata-kata.
-- Gunakan TANDA BACA biasa secara cerdas untuk mengatur ritme.
-- Gunakan tanda koma (,) untuk jeda napas pendek.
-- Gunakan tanda titik (.) untuk jeda napas panjang atau di akhir kalimat.
-- Tuliskan angka menjadi kata-kata jika perlu (misal "Rp 10.000" menjadi "sepuluh ribu rupiah") agar mesin tidak salah baca jika dijadikan Voice Over.
 
-PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan siap digunakan.
+ATURAN NASKAH (SANGAT PENTING):
+- Jika platform/tujuan untuk "Audio" atau "Video", gunakan format SSML agar suara AI Google Wavenet terdengar natural.
+  Contoh: Awali dengan <speak> dan akhiri </speak>. Gunakan <break time="400ms"/> untuk jeda napas. Gunakan <prosody pitch="+1st" rate="1.1">teks</prosody> untuk penekanan.
+- Jika platform/tujuan untuk "Infografis", DILARANG menggunakan SSML. Gunakan Bullet Points (Slide 1, Slide 2, dst) yang sangat padat dan singkat.
+- Jika platform/tujuan untuk "Caption/Pesan Teks", DILARANG menggunakan SSML. Gunakan gaya penulisan copywriting dengan emoji yang menarik.
     """
 
     # --- 3. SETUP KREDENSIAL GEMINI ---
@@ -44,7 +41,7 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
 
     st.title("📝 Ruang 1: Studio Kreasi Naskah")
     
-    # Blok informasi pengantar fungsi studio
+    # Blok informasi pengantar fungsi studio (Paten)
     st.info("💡 **Informasi:** Studio ini adalah titik awal produksi Anda. Di sini, Kecerdasan Buatan (AI) bertindak sebagai Direktur Kreatif yang akan membantu Anda menyusun naskah, skrip, atau *copywriting* profesional hanya dengan menjawab beberapa pertanyaan sederhana. Hasil dari studio ini akan otomatis tersambung ke studio lainnya.")
 
     # --- 4. INISIALISASI STATE (WIZARD) ---
@@ -63,21 +60,23 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.session_state.hasil_naskah = ""
 
     # ==========================================
-    # LANGKAH 1: PRODUK / JASA
+    # LANGKAH 1: PRODUK / JASA (DAFTAR PATEN)
     # ==========================================
     if st.session_state.wizard_step == 1:
         st.subheader("Langkah 1 dari 6: Produk atau Jasa")
         pilihan = st.selectbox("Apa produk atau jasa yang ingin Anda buatkan narasinya?", 
                                ["Pilih...", 
-                                "Produk Kesehatan & Suplemen", 
-                                "Makanan & Minuman", 
-                                "Layanan / Jasa Komunitas", 
-                                "Barang Elektronik / Gadget", 
-                                "Acara / Webinar",
-                                "Isi sendiri..."])
+                                "1. Aplikasi Kesehatan - Konsultan Puasa IF", 
+                                "2. Aplikasi Pintar Saham - Konsultan Saham Indonesia", 
+                                "3. Produk Kesehatan & Perawatan Pribadi", 
+                                "4. Produk Makanan, Minuman & Suplemen", 
+                                "5. Layanan / Jasa Komunitas", 
+                                "6. Barang Elektronik / Gadget", 
+                                "7. Acara / Webinar",
+                                "8. Isi Sendiri ..."])
         
         jawaban_final = pilihan
-        if pilihan == "Isi sendiri...":
+        if pilihan == "8. Isi Sendiri ...":
             jawaban_final = st.text_input("Sebutkan produk atau jasa Anda:")
 
         if st.button("Selanjutnya ➡️"):
@@ -89,20 +88,22 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                 st.warning("Mohon pilih atau isi produk/jasa terlebih dahulu.")
 
     # ==========================================
-    # LANGKAH 2: POIN PENTING / KEUNGGULAN
+    # LANGKAH 2: POIN PENTING / KEUNGGULAN (DAFTAR PATEN)
     # ==========================================
     elif st.session_state.wizard_step == 2:
         st.subheader("Langkah 2 dari 6: Keunggulan Utama")
         pilihan = st.selectbox("Apa pesan utama atau keunggulan yang WAJIB disampaikan?", 
                                ["Pilih...", 
+                                "Aplikasi Kesehatan: i) IF Aman: Pola puasa yang disesuaikan usia, jenis kelamin, gemuk kurusnya badan (BMI), dan riwayat kesehatan (Maag, Diabetes, Jantung, dll). ii) Nutrisi Cerdas: Rekomendasi makanan & suplemen sesuai profil alergi Anda. iii) Olahraga Terukur: Panduan detak jantung agar latihan efektif dan bebas risiko fatal. iv) Laporan Instan: Download rangkuman kesehatan Anda dalam format PDF.",
+                                "Aplikasi Pintar Saham: i) 6 Modul Analisa Premium: Dari Teknikal Pro hingga Kalkulator Dividen. ii) Screening Otomatis: Temukan saham undervalued dalam hitungan detik. iii) Risk Management: Fitur Stop Loss & Target Price otomatis di setiap analisa. iv) Data Real-Time: Akses langsung ke data pasar Bursa Efek Indonesia. v) Laporan PDF: Hasil analisa bisa didownload dalam bentuk PDF.",
                                 "Manfaat kesehatan & bahan alami yang digunakan", 
                                 "Promo diskon terbatas & harga spesial", 
                                 "Solusi praktis untuk masalah sehari-hari", 
                                 "Ajakan bergabung ke komunitas / acara",
-                                "Isi sendiri..."])
+                                "Isi Sendiri ..."])
         
         jawaban_final = pilihan
-        if pilihan == "Isi sendiri...":
+        if pilihan == "Isi Sendiri ...":
             jawaban_final = st.text_area("Tuliskan poin penting/keunggulan produk Anda:")
 
         col1, col2 = st.columns(2)
@@ -125,26 +126,25 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
     elif st.session_state.wizard_step == 3:
         st.subheader("Langkah 3 dari 6: Tujuan & Target Panjang/Durasi")
         
-        # Penambahan Tujuan Pembuatan Naskah (Termasuk Infografis)
         pilihan_tujuan = st.selectbox("Apa tujuan pembuatan naskah ini?", 
                                ["Pilih...", 
                                 "Copywriting / Naskah Iklan / Promosi", 
                                 "Naskah Rekaman Audio", 
                                 "Naskah Suara Penjelasan di Video",
                                 "Teks Infografis / Presentasi Visual", 
-                                "Isi sendiri..."])
+                                "Isi Sendiri ..."])
         
         jawaban_tujuan = pilihan_tujuan
-        if pilihan_tujuan == "Isi sendiri...":
+        if pilihan_tujuan == "Isi Sendiri ...":
             jawaban_tujuan = st.text_input("Sebutkan tujuan pembuatan naskah Anda:")
 
-        st.markdown("<br>", unsafe_allow_html=True) # Memberi sedikit jarak
+        st.markdown("<br>", unsafe_allow_html=True) 
 
         pilihan_durasi = st.selectbox("Berapa panjang atau target durasi naskah Anda?", 
-                               ["Pilih...", "15 detik (Singkat / Iklan Cepat / Pesan Pendek)", "30 detik (Standar Iklan/Reels/Caption Menedah)", "60 detik (Edukasi / Penjelasan Lengkap)", "Isi sendiri..."])
+                               ["Pilih...", "15 detik (Singkat / Iklan Cepat / Pesan Pendek)", "30 detik (Standar Iklan/Reels/Caption Menedah)", "60 detik (Edukasi / Penjelasan Lengkap)", "Isi Sendiri ..."])
         
         jawaban_durasi = pilihan_durasi
-        if pilihan_durasi == "Isi sendiri...":
+        if pilihan_durasi == "Isi Sendiri ...":
             jawaban_durasi = st.text_input("Masukkan target panjang naskah (misal: 45 detik, 2 paragraf, atau 5 slide):")
             
             # --- LOGIKA PEMBATASAN DURASI (HARD CAP 180 DETIK) ---
@@ -154,7 +154,6 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     nilai_angka = int(angka_ditemukan[0])
                     teks_kecil = jawaban_durasi.lower()
                     
-                    # Konversi ke detik untuk pengecekan
                     if "jam" in teks_kecil:
                         total_detik = nilai_angka * 3600
                     elif "menit" in teks_kecil:
@@ -162,9 +161,8 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     elif "detik" in teks_kecil:
                         total_detik = nilai_angka
                     else:
-                        total_detik = 0 # Abaikan jika isian berupa "5 slide" atau "2 paragraf"
+                        total_detik = 0 
                     
-                    # Penguncian jika melebihi batas (Hanya jika terdeteksi unsur waktu)
                     if total_detik > 180:
                         st.warning("⏳ **Perhatian:** Maksimal target durasi adalah **180 detik (3 menit)** untuk menjaga kualitas naskah. Isian Anda otomatis dikunci ke batas maksimal tersebut.")
                         jawaban_durasi = "180 detik (Batas maksimal)"
@@ -189,19 +187,18 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
     # ==========================================
     elif st.session_state.wizard_step == 4:
         st.subheader("Langkah 4 dari 6: Audiens & Suasana")
-        # Perubahan pertanyaan audiens
         pilihan_audiens = st.selectbox("Untuk siapa pendengar atau pembaca dari naskah ini?", 
-                               ["Pilih...", "Pensiunan / Senior (Jelas, santai, hormat)", "Profesional / Pekerja (Formal, padat, lugas)", "Anak Muda / Gen Z (Cepat, kasual, gaul)", "Ibu Rumah Tangga (Hangat, akrab, praktis)", "Isi sendiri..."])
+                               ["Pilih...", "Pensiunan / Senior (Jelas, santai, hormat)", "Profesional / Pekerja (Formal, padat, lugas)", "Anak Muda / Gen Z (Cepat, kasual, gaul)", "Ibu Rumah Tangga (Hangat, akrab, praktis)", "Isi Sendiri ..."])
         
         jawaban_audiens = pilihan_audiens
-        if pilihan_audiens == "Isi sendiri...":
+        if pilihan_audiens == "Isi Sendiri ...":
             jawaban_audiens = st.text_input("Masukkan target audiens Anda:")
 
         pilihan_vibe = st.selectbox("Perasaan apa yang ingin dibangun?", 
-                               ["Pilih...", "Semangat & Menggebu-gebu (Promosi)", "Tenang & Meyakinkan (Kesehatan/Edukasi)", "Santai & Menghibur (Kasual)", "Isi sendiri..."])
+                               ["Pilih...", "Semangat & Menggebu-gebu (Promosi)", "Tenang & Meyakinkan (Kesehatan/Edukasi)", "Santai & Menghibur (Kasual)", "Isi Sendiri ..."])
         
         jawaban_vibe = pilihan_vibe
-        if pilihan_vibe == "Isi sendiri...":
+        if pilihan_vibe == "Isi Sendiri ...":
             jawaban_vibe = st.text_input("Masukkan vibe/emosi yang Anda inginkan:")
 
         col1, col2 = st.columns(2)
@@ -225,7 +222,6 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
     elif st.session_state.wizard_step == 5:
         st.subheader("Langkah 5 dari 6: Konteks & Koreksi")
         
-        # Penambahan Platform Infografis
         pilihan_konteks = st.selectbox("Naskah ini akan digunakan untuk platform apa?", 
                                ["Pilih...", 
                                 "Video Pendek (TikTok / Reels / Shorts)", 
@@ -234,21 +230,19 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                                 "Pesan Teks (WhatsApp / Telegram / Threads)",
                                 "Caption Media Sosial (Instagram / Facebook / TikTok)",
                                 "Postingan Infografis (Feed / Carousel Instagram / LinkedIn)",
-                                "Isi sendiri..."])
+                                "Isi Sendiri ..."])
         
         jawaban_konteks = pilihan_konteks
-        if pilihan_konteks == "Isi sendiri...":
+        if pilihan_konteks == "Isi Sendiri ...":
             jawaban_konteks = st.text_input("Masukkan platform tujuan Anda:")
 
         st.divider()
         st.info("📋 **Periksa Kembali Panduan Naskah Anda:**\nSilakan edit langsung di dalam kotak jika ada yang ingin diubah sebelum diserahkan ke Direktur Kreatif.")
 
-        # Menampilkan input editable beserta penambahan Tujuan
         edit_produk = st.text_input("1. Produk/Jasa", value=st.session_state.jawaban.get("produk", ""))
-        edit_poin = st.text_input("2. Poin Penting", value=st.session_state.jawaban.get("poin_penting", ""))
+        edit_poin = st.text_area("2. Poin Penting", value=st.session_state.jawaban.get("poin_penting", ""))
         edit_tujuan = st.text_input("3. Tujuan Naskah", value=st.session_state.jawaban.get("tujuan", ""))
         
-        # Kolom durasi dengan proteksi real-time
         edit_durasi = st.text_input("4. Target Panjang/Durasi", value=st.session_state.jawaban.get("durasi", ""))
         if edit_durasi:
             angka_ditemukan = re.findall(r'\d+', edit_durasi)
@@ -301,7 +295,6 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
         st.subheader("🎬 Hasil Naskah Pro")
 
         if not st.session_state.hasil_naskah:
-            # Memunculkan notifikasi bantuan berdasarkan platform khusus
             if "Threads" in st.session_state.jawaban['konteks']:
                 st.info("💡 **Info Batasan:** Karena Anda memilih platform Pesan Teks (termasuk Threads), sistem membatasi panjang naskah final maksimal **500 karakter** agar dapat diposting tanpa terpotong.")
             elif "Infografis" in st.session_state.jawaban['tujuan'] or "Infografis" in st.session_state.jawaban['konteks']:
@@ -314,14 +307,12 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                         system_instruction=DIREKTUR_PROMPT
                     )
                     
-                    # Logika Hard Cap & Format Khusus
                     instruksi_tambahan_platform = ""
                     if "Threads" in st.session_state.jawaban['konteks']:
                         instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Karena platform mencakup Threads, PANJANG NASKAH FINAL DI DALAM KOTAK KODE TIDAK BOLEH LEBIH DARI 500 KARAKTER (termasuk spasi)!"
                     elif "Infografis" in st.session_state.jawaban['tujuan'] or "Infografis" in st.session_state.jawaban['konteks']:
-                        instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*."
+                        instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*. HINDARI SSML SAMA SEKALI."
 
-                    # Menyusun prompt yang lebih rapi ke Gemini beserta info tujuan
                     prompt_final = f"""
                     Tolong buatkan naskah berdasarkan panduan berikut:
                     - Produk/Jasa: {st.session_state.jawaban['produk']}
@@ -342,12 +333,9 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     if st.button("Coba Lagi"):
                         st.rerun()
         else:
-            # Menampilkan hasil
             st.markdown(st.session_state.hasil_naskah)
 
             st.divider()
-            
-            # Notifikasi yang lebih ramah dan menenangkan bagi orang awam
             st.info("💡 **Catatan:** Sistem kami akan otomatis menarik naskah di dalam kotak hitam di atas saat Anda berpindah ruangan. Silakan pilih ke mana Anda ingin memproses naskah ini selanjutnya:")
             
             col1, col2, col3 = st.columns(3)
@@ -357,12 +345,10 @@ PENTING: Pastikan teks di dalam kotak naskah final benar-benar bersih, rapi, dan
                     st.session_state.wizard_step = 1
                     st.rerun()
             with col2:
-                # Menggunakan penamaan baku
                 if st.button("🎨 Ke Studio Kreasi Cetak / Visual", use_container_width=True):
                     st.session_state.menu_aktif = "3. Studio Kreasi Cetak / Visual"
                     st.rerun()
             with col3:
-                # Menggunakan penamaan baku
                 if st.button("🚀 Ke Studio Kreasi Suara / Audio", use_container_width=True):
                     st.session_state.menu_aktif = "2. Studio Kreasi Suara / Audio"
                     st.rerun()
