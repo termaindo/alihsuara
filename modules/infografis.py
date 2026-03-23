@@ -6,7 +6,6 @@ import base64
 import re
 from io import BytesIO
 from PIL import Image
-# PENTING: import rembg DIHAPUS dari sini untuk mencegah aplikasi stuck di awal (Lazy Loading)
 from google.api_core.exceptions import ResourceExhausted
 
 # ==========================================
@@ -20,323 +19,159 @@ def setup_gemini():
         st.error("🔑 Kunci API Gemini belum dikonfigurasi di st.secrets.")
 
 # ==========================================
-# FUNGSI: PEMROSESAN GAMBAR (RESIZE & REMBG)
+# FUNGSI: PEMROSESAN GAMBAR
 # ==========================================
 def process_product_image(uploaded_file):
     try:
-        # Panggil fungsi remove dan new_session dari rembg
-        from rembg import remove, new_session 
-
         image = Image.open(uploaded_file)
+        # Resize tetap dilakukan agar hemat RAM & Bandwidth
         image.thumbnail((800, 800))
         
         buf = BytesIO()
         image.save(buf, format="PNG")
         byte_im = buf.getvalue()
         
-        with st.spinner("✨ Sedang memotong background gambar dengan model ringan..."):
-            # [KUNCI RAHASIA]: Gunakan model 'u2netp' yang sangat ringan!
-            sesi_ringan = new_session("u2netp")
-            output_bytes = remove(byte_im, session=sesi_ringan)
-            
-        base64_img = base64.b64encode(output_bytes).decode('utf-8')
+        base64_img = base64.b64encode(byte_im).decode('utf-8')
         return f"data:image/png;base64,{base64_img}"
     except Exception as e:
-        st.error(f"Terjadi kesalahan saat memproses gambar: {e}")
+        st.error(f"Gagal memproses gambar: {e}")
         return None
 
 # ==========================================
 # FUNGSI: EKSTRAKSI NASKAH KE JSON (GEMINI)
 # ==========================================
 def generate_json_structure(naskah):
-    """
-    Mengubah naskah mentah menjadi struktur JSON menggunakan Gemini 2.5 Flash.
-    """
     model = genai.GenerativeModel('gemini-2.5-flash')
     prompt = f"""
-    Anda adalah asisten desainer grafis. Ubah naskah promosi berikut menjadi struktur data JSON murni untuk keperluan desain infografis/poster.
-    Jangan tambahkan markdown ```json atau teks lain, cukup outputkan JSON valid.
-
-    Format wajib JSON:
-    {{
-        "slide_number": 1,
-        "infographic_title": "Judul Singkat Menarik",
-        "items": ["Keunggulan 1", "Keunggulan 2", "Call to action"]
-    }}
-
-    Naskah Mentah:
-    {naskah}
+    Ubah naskah promosi ini menjadi JSON murni untuk poster.
+    Format: {{"infographic_title": "Judul", "items": ["Poin 1", "Poin 2"]}}
+    Naskah: {naskah}
     """
-    
     try:
         response = model.generate_content(prompt)
-        # Ekstrak JSON menggunakan regex untuk mengantisipasi jika Gemini masih mengembalikan markdown
         match = re.search(r'\{.*\}', response.text, re.DOTALL)
-        if match:
-            json_str = match.group(0)
-            return json.loads(json_str)
-        else:
-            # Fallback jika tidak ada bracket JSON
-            return json.loads(response.text)
-            
-    except ResourceExhausted:
-        # Tangkap error 429 Quota Exceeded
+        return json.loads(match.group(0)) if match else json.loads(response.text)
+    except Exception:
         return {"error": "429"}
-    except Exception as e:
-        if "429" in str(e):
-             return {"error": "429"}
-        return {"error": str(e)}
 
 # ==========================================
-# FUNGSI: ENGINE TEMA CSS & LAYOUTING
+# ENGINE TEMA CSS & LAYOUT (9:16 & MODE PILIHAN)
 # ==========================================
-def get_theme_css(theme_name, layout_type):
-    """
-    Menyediakan 5 tema acak dan mengatur responsivitas layout.
-    """
-    # Pengaturan Layout Dimensi
+def get_theme_css(theme_name, layout_type, mode_foto):
+    # Dimensi
     if layout_type == "Square (1:1)":
-        aspect_ratio = "1 / 1"
-        max_width = "500px"
-    elif layout_type == "Portrait (3:4)":
-        aspect_ratio = "3 / 4"
-        max_width = "400px"
-    else: # Landscape (16:9)
-        aspect_ratio = "16 / 9"
-        max_width = "700px"
+        aspect_ratio, max_width = "1 / 1", "450px"
+    elif layout_type == "Portrait (9:16)":
+        aspect_ratio, max_width = "9 / 16", "350px"
+    else:
+        aspect_ratio, max_width = "16 / 9", "700px"
 
-    # Palet Tema
     themes = {
-        "minimalist": {
-            "bg": "#ffffff", "text": "#333333", "accent": "#f0f0f0", "font": "Arial, sans-serif"
-        },
-        "elegant_dark": {
-            "bg": "#1a1a2e", "text": "#e94560", "accent": "#16213e", "font": "'Georgia', serif", "text_white": "#ffffff"
-        },
-        "modern_gradient": {
-            "bg": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", "text": "#ffffff", "accent": "rgba(255,255,255,0.2)", "font": "'Helvetica Neue', sans-serif"
-        },
-        "earthy_nature": {
-            "bg": "#e9e5cd", "text": "#4b6542", "accent": "#d4cda3", "font": "'Trebuchet MS', sans-serif"
-        },
-        "vibrant_pop": {
-            "bg": "#ffdf00", "text": "#ff007f", "accent": "#00d2ff", "font": "'Impact', sans-serif", "text_dark": "#111111"
-        }
+        "minimalist": {"bg": "#ffffff", "text": "#333333", "accent": "#f0f0f0", "font": "sans-serif"},
+        "elegant_dark": {"bg": "#1a1a2e", "text": "#e94560", "accent": "#16213e", "font": "serif"},
+        "modern_gradient": {"bg": "linear-gradient(135deg, #667eea, #764ba2)", "text": "#ffffff", "accent": "rgba(255,255,255,0.2)", "font": "sans-serif"},
+        "earthy_nature": {"bg": "#e9e5cd", "text": "#4b6542", "accent": "#d4cda3", "font": "sans-serif"},
+        "vibrant_pop": {"bg": "#ffdf00", "text": "#ff007f", "accent": "#00d2ff", "font": "Impact"}
     }
     
     t = themes.get(theme_name, themes["minimalist"])
-    
-    # Warna teks sekunder (handling untuk tema gelap/terang)
-    color_main = t.get("text_white", t["text"]) if theme_name in ["modern_gradient"] else t["text"]
-    color_item = t.get("text_dark", color_main)
-    
+    color_main = t["text"] if theme_name != "modern_gradient" else "#ffffff"
+
+    # Logika CSS berdasarkan Mode Foto
+    if mode_foto == "Foto Studio (Latar Putih)":
+        # Gunakan trik transparan
+        img_style = "mix-blend-mode: multiply; filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.1));"
+    else:
+        # Gunakan foto asli utuh dengan bingkai cantik
+        img_style = "border-radius: 12px; border: 3px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.2);"
+
     css = f"""
     <style>
         .poster-container {{
-            width: 100%;
-            max-width: {max_width};
-            aspect-ratio: {aspect_ratio};
-            background: {t['bg']};
-            color: {color_main};
-            font-family: {t['font']};
-            margin: 0 auto;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            padding: 30px;
-            box-sizing: border-box;
+            width: 100%; max-width: {max_width}; aspect-ratio: {aspect_ratio};
+            background: {t['bg']}; color: {color_main}; font-family: {t['font']};
+            margin: 0 auto; display: flex; flex-direction: column;
+            justify-content: space-between; border-radius: 15px;
+            padding: 25px; box-sizing: border-box; box-shadow: 0 15px 35px rgba(0,0,0,0.2);
         }}
-        .poster-header {{
-            text-align: center;
-            font-size: 1.8em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            z-index: 2;
+        .poster-header {{ text-align: center; font-size: 1.4em; font-weight: bold; text-transform: uppercase; }}
+        .poster-content {{ display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; gap: 15px; }}
+        .poster-image-wrap {{ width: 100%; display: flex; justify-content: center; }}
+        .poster-image-wrap img {{
+            max-width: 95%; max-height: 280px; object-fit: cover;
+            {img_style}
         }}
-        .poster-content {{
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
-            gap: 20px;
-            z-index: 2;
-        }}
-        .poster-image {{
-            flex: 1;
-            display: flex;
-            justify-content: center;
-        }}
-        .poster-image img {{
-            max-width: 100%;
-            max-height: 250px;
-            object-fit: contain;
-            /* [CRITICAL] Efek 3D Melayang sesuai request */
-            filter: drop-shadow(0px 25px 35px rgba(0,0,0,0.25));
-        }}
-        .poster-items {{
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }}
-        .item-box {{
-            background: {t['accent']};
-            color: {color_item};
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 0.9em;
-            font-weight: 500;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }}
-        .poster-footer {{
-            text-align: center;
-            font-size: 0.75em;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(128,128,128,0.3);
-            z-index: 2;
-            font-weight: bold;
-        }}
-        .poster-footer div {{
-            margin-bottom: 4px;
+        .item-box {{ background: {t['accent']}; padding: 10px; border-radius: 8px; font-size: 0.85em; width: 100%; font-weight: 500; }}
+        .poster-footer {{ 
+            text-align: center; font-size: 0.65em; border-top: 1px solid rgba(128,128,128,0.3); 
+            padding-top: 10px; margin-top: 10px; font-weight: bold;
         }}
     </style>
     """
     return css
 
-def render_html_poster(json_data, base64_img, layout_type, theme_name):
-    """
-    Menggabungkan CSS, Data JSON, dan Gambar ke dalam satu komponen HTML.
-    """
-    css = get_theme_css(theme_name, layout_type)
+def render_html_poster(json_data, base64_img, layout_type, theme_name, mode_foto):
+    css = get_theme_css(theme_name, layout_type, mode_foto)
+    items_html = "".join([f"<div class='item-box'>✓ {i}</div>" for i in json_data.get("items", [])])
     
-    title = json_data.get("infographic_title", "Visual Produk")
-    items = json_data.get("items", [])
-    
-    items_html = ""
-    for item in items:
-        items_html += f"<div class='item-box'>✓ {item}</div>"
-
-    html = f"""
+    return f"""
     {css}
     <div class="poster-container">
-        <div class="poster-header">{title}</div>
-        
+        <div class="poster-header">{json_data.get('infographic_title', 'Visual Produk')}</div>
         <div class="poster-content">
-            <div class="poster-items">
-                {items_html}
-            </div>
-            <div class="poster-image">
-                <img src="{base64_img}" alt="Product Image">
-            </div>
+            <div class="poster-image-wrap"><img src="{base64_img}"></div>
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px;">{items_html}</div>
         </div>
-        
         <div class="poster-footer">
             <div>Studio Kreatif Pro - KTB UKM JATIM</div>
-            <div>📸 @ktbukm.jatim | 🌐 [https://ktbukm-jatim.store](https://ktbukm-jatim.store)</div>
+            <div>📸 @ktbukm.jatim | 🌐 https://ktbukm-jatim.store</div>
         </div>
     </div>
     """
-    return html
-
-# ==========================================
-# FUNGSI: BACKUP PROMPT MANUAL
-# ==========================================
-def create_manual_prompt(naskah):
-    """
-    Mencetak instruksi copas untuk pengguna yang ingin menggenerate gambar di platform luar.
-    """
-    prompt = f"""
-    *Salin teks di bawah ini dan tempel di ChatGPT atau Gemini Web:*
-
-    "Buatkan saya ide desain infografis atau poster untuk mempromosikan produk saya. 
-    Gunakan elemen visual yang menarik dan layout yang profesional.
-    
-    Berikut adalah naskah dasar yang ingin saya sampaikan:
-    {naskah}
-    
-    Tolong berikan rekomendasi warna, tata letak teks, dan konsep gambar yang cocok."
-    """
-    return prompt
 
 # ==========================================
 # MODUL UTAMA RUN()
 # ==========================================
 def run():
     st.title("🎨 Ruang 3: Studio Cetak / Visual")
-    st.markdown("Buat visual promosi produk UMKM Anda dengan cepat, elegan, dan tanpa ribet.")
-    
     setup_gemini()
 
-    # Ambil naskah dari Ruang sebelumnya (st.session_state)
     naskah_mentah = st.session_state.get("hasil_naskah", "")
-    
     if not naskah_mentah:
-        st.info("ℹ️ Anda belum memiliki naskah. Silakan buat naskah di Ruang Copywriting terlebih dahulu.")
-        naskah_mentah = "Ini adalah contoh naskah default karena belum ada naskah dari sesi sebelumnya. Produk berkualitas tinggi, harga terjangkau, dan ramah lingkungan."
-    else:
-        with st.expander("📄 Lihat Naskah Aktif Anda"):
-            st.write(naskah_mentah)
+        st.info("ℹ️ Silakan buat naskah di Ruang 1 terlebih dahulu.")
+        naskah_mentah = "Produk UMKM Berkualitas Tinggi."
 
     st.markdown("---")
-    st.markdown("### 1. Unggah Foto Produk (Wajib)")
-    st.caption("Unggah foto produk Anda. Sistem akan otomatis memotong background dan memberikan efek 3D.")
     
+    st.markdown("### 1. Pengaturan Foto")
+    # PILIHAN MODE FOTO (PENGATURAN BARU)
+    mode_foto = st.radio(
+        "Jenis Foto yang Anda Unggah:",
+        ["Foto Studio (Latar Putih)", "Foto Estetik / Sudah Ada Latar"],
+        help="Pilih 'Foto Studio' jika foto berlatar putih polos agar produk terlihat menyatu dengan poster. Pilih 'Foto Estetik' jika foto Anda sudah bagus seperti hasil produksi AI atau studio kontekstual."
+    )
+
     uploaded_file = st.file_uploader("Pilih foto produk (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
     
     col1, col2 = st.columns(2)
     with col1:
-        layout_choice = st.selectbox("Pilih Dimensi Visual:", ["Square (1:1)", "Portrait (3:4)", "Landscape (16:9)"])
+        layout_choice = st.selectbox("Pilih Dimensi Visual:", ["Portrait (9:16)", "Square (1:1)", "Landscape (16:9)"])
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Logika jika tombol ditekan
     if st.button("🚀 Buat Desain Visual Sekarang!", type="primary"):
-        
         if not uploaded_file:
-            # SYARAT WAJIB: Jika tidak ada gambar, munculkan peringatan & hentikan render HTML
-            st.warning("⚠️ Halo Kak! Anda belum mengunggah foto produk. Untuk hasil desain yang maksimal, mohon unggah foto produknya dulu ya di atas.")
-            
-            # Tetap tampilkan Prompt Manual di bawah peringatan
-            st.markdown("### Instruksi Praktis Prompt Manual")
-            st.info("Jika Anda ingin membuat desain secara manual di platform lain (seperti Canva/ChatGPT), Anda bisa menyalin panduan berikut:")
-            st.code(create_manual_prompt(naskah_mentah), language="text")
-            
+            st.warning("⚠️ Silakan unggah foto produk Anda terlebih dahulu.")
         else:
-            # PROSES JIKA GAMBAR ADA
-            # 1. Proses Gambar (Resize & Rembg)
-            base64_img = process_product_image(uploaded_file)
-            
-            if base64_img:
-                # 2. Proses Teks ke JSON
-                with st.spinner("🤖 Mengonversi naskah menjadi struktur infografis..."):
-                    json_data = generate_json_structure(naskah_mentah)
+            # SPINNEER/LOADING SESUAI INSTRUKSI
+            with st.spinner("⚙️ Direktur kreatif sedang memproduksi visual cetakan..."):
+                base64_img = process_product_image(uploaded_file)
+                json_data = generate_json_structure(naskah_mentah)
                 
-                # Handling Error Limit Kuota Gemini
                 if isinstance(json_data, dict) and json_data.get("error") == "429":
-                    st.error("⏳ Server Google sedang mendinginkan mesin. Tunggu 1 menit lalu tekan tombol lagi.")
-                elif isinstance(json_data, dict) and "error" in json_data:
-                    st.error(f"Gagal memproses teks: {json_data['error']}")
+                    st.error("⏳ Server Google sedang mendinginkan mesin. Tunggu 1 menit.")
                 else:
-                    st.success("Visual berhasil dibuat!")
-                    
-                    # 3. Pilih Tema Acak
-                    themes_list = ["minimalist", "elegant_dark", "modern_gradient", "earthy_nature", "vibrant_pop"]
-                    chosen_theme = random.choice(themes_list)
-                    st.caption(f"🎨 Tema Terpilih: **{chosen_theme.replace('_', ' ').title()}**")
-                    
-                    # 4. Render HTML
-                    html_poster = render_html_poster(json_data, base64_img, layout_choice, chosen_theme)
-                    st.components.v1.html(html_poster, height=600, scrolling=True)
-                    
-            # Tampilkan Backup Prompt Manual di akhir sukses
-            st.markdown("---")
-            st.markdown("### 💡 Instruksi Praktis Prompt Manual")
-            st.code(create_manual_prompt(naskah_mentah), language="text")
+                    st.success("✨ Visual Berhasil Dicetak!")
+                    theme = random.choice(["minimalist", "elegant_dark", "modern_gradient", "earthy_nature", "vibrant_pop"])
+                    html_poster = render_html_poster(json_data, base64_img, layout_choice, theme, mode_foto)
+                    st.components.v1.html(html_poster, height=750, scrolling=True)
