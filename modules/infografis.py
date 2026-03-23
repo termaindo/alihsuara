@@ -56,8 +56,8 @@ def generate_image_gemini(prompt, dimensi=""):
             except Exception as e:
                 last_err = str(e)
                 err_lower = last_err.lower()
-                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi/Permission/404)
-                if "403" in err_lower or "404" in err_lower or "400" in err_lower or "safety" in err_lower or "location" in err_lower:
+                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi/Permission/404/Berbayar)
+                if "403" in err_lower or "404" in err_lower or "400" in err_lower or "safety" in err_lower or "location" in err_lower or "paid" in err_lower:
                     break 
                 time.sleep(3) # Tunggu 3 detik sebelum mencoba lagi
         
@@ -165,6 +165,32 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi, tema="mini
             .stamp-line { color: #ffffff; }
             .stamp-spacer { color: #7dd3fc; }
         """
+    elif tema == "earthy_nature":
+        css_colors = """
+            .poster-container { background-color: #fdf8f5; }
+            .slide-indicator { color: #15803d; background-color: #dcfce7; padding: 6px 20px; border-radius: 30px; display: inline-block; font-weight: 800; border: 1px solid #bbf7d0; }
+            .main-title { color: #14532d; }
+            .minimalist-item { background: #ffffff; padding: 25px; border-radius: 20px; border-left: 6px solid #16a34a; box-shadow: 0 10px 25px rgba(20, 83, 45, 0.05); }
+            .item-icon { background: #f0fdf4; padding: 15px; border-radius: 50%; color: #16a34a; margin-top: -5px; }
+            .item-title { color: #166534; }
+            .item-desc { color: #4b5563; }
+            .stamp-footer { background-color: #14532d; }
+            .stamp-line { color: #fcfdf8; }
+            .stamp-spacer { color: #86efac; }
+        """
+    elif tema == "vibrant_pop":
+        css_colors = """
+            .poster-container { background-color: #fef08a; border: 3px solid #0f172a; border-radius: 24px; }
+            .slide-indicator { color: #ffffff; background-color: #ec4899; padding: 6px 20px; border-radius: 25px; display: inline-block; border: 2px solid #0f172a; font-weight: 800; transform: rotate(-2deg); box-shadow: 3px 3px 0px #0f172a; }
+            .main-title { color: #0f172a; text-transform: uppercase; text-shadow: 3px 3px 0px #f472b6; }
+            .minimalist-item { background: #ffffff; padding: 25px; border-radius: 20px; border: 3px solid #0f172a; box-shadow: 6px 6px 0px #0f172a; }
+            .item-icon { font-size: 45px; margin-top: -5px; }
+            .item-title { color: #0f172a; font-weight: 900; }
+            .item-desc { color: #334155; font-weight: 700; }
+            .stamp-footer { background-color: #ec4899; border-top: 3px solid #0f172a; }
+            .stamp-line { color: #ffffff; font-weight: 800; }
+            .stamp-spacer { color: #fbcfe8; }
+        """
     else: # minimalist (default)
         css_colors = """
             .poster-container { background-color: #ffffff; }
@@ -246,7 +272,7 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi, tema="mini
     <html>
     <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
         <style>
             body {{ margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background-color: #f4f6f8; font-family: 'Plus Jakarta Sans', sans-serif; }}
             .slide-wrapper {{ margin-bottom: 50px; display: flex; flex-direction: column; align-items: center; width: 100%; }}
@@ -258,7 +284,10 @@ def render_beautiful_html_poster(data_json, b64_images, opsi_dimensi, tema="mini
             .image-col {{ flex: 1; }}
             .text-col {{ flex: 1.2; display: flex; flex-direction: column; gap: 30px; }}
             .text-col-vertical {{ display: flex; flex-direction: column; gap: 30px; margin-top: 20px; }}
-            .hero-image {{ width: 100%; height: auto; max-height: 800px; object-fit: contain; border-radius: 24px; }}
+            
+            /* EFEK ORNAMEN SHADOW: Bayangan ini akan mengikuti lekuk produk transparan (Auto-Cutout) sehingga terlihat sangat 3D */
+            .hero-image {{ width: 100%; height: auto; max-height: 800px; object-fit: contain; border-radius: 24px; filter: drop-shadow(0px 25px 35px rgba(0,0,0,0.25)); }}
+            
             .minimalist-item {{ display: flex; align-items: flex-start; gap: 20px; }}
             .item-icon {{ font-size: 45px; line-height: 1; }}
             .item-title {{ font-size: 28px; font-weight: 800; margin-bottom: 8px; }}
@@ -400,9 +429,12 @@ def run():
     st.divider()
     
     st.markdown("### 📸 Upload Gambar Produk (SANGAT DISARANKAN)")
-    st.info("💡 **Tips Anti Gagal:** Jika Anda sudah memiliki foto produk sendiri, mengunggahnya di sini akan **menjamin 100% desain jadi seketika** dengan tata letak minimalis premium, tanpa harus memanggil AI pelukis.")
+    st.info("💡 **Tips Anti Gagal:** Jika Anda sudah memiliki foto produk sendiri, mengunggahnya di sini akan **menjamin 100% desain jadi seketika** dengan tata letak minimalis premium, tanpa harus memanggil AI pelukis. *Setiap klik tombol render akan memberikan variasi TEMA yang berbeda!*")
     
     uploaded_file = st.file_uploader("Upload Foto Asli Anda di sini (Format: PNG, JPG, JPEG):", type=["png", "jpg", "jpeg"])
+    
+    # TAMBAHAN FITUR REMBG (PENGHAPUS LATAR OTOMATIS)
+    hapus_bg = st.checkbox("✨ Hapus Background Foto Secara Otomatis (Rekomendasi)", value=True, help="AI akan otomatis membuang latar belakang foto yang berantakan, sehingga produk Anda terlihat melayang elegan (3D) di atas template kami.")
 
     st.divider()
     st.markdown("### 📝 Naskah Dasar")
@@ -429,14 +461,38 @@ def run():
                 user_b64_img = ""
                 if uploaded_file is not None:
                     img_bytes = uploaded_file.getvalue()
-                    b64_encoded = base64.b64encode(img_bytes).decode('utf-8')
-                    user_b64_img = f"data:{uploaded_file.type};base64,{b64_encoded}"
+                    
+                    # LOGIKA PEMOTONGAN BACKGROUND
+                    if hapus_bg:
+                        with st.spinner("✨ AI Pemotong sedang membersihkan latar belakang foto Anda..."):
+                            try:
+                                from rembg import remove
+                                img_no_bg_bytes = remove(img_bytes)
+                                b64_encoded = base64.b64encode(img_no_bg_bytes).decode('utf-8')
+                                user_b64_img = f"data:image/png;base64,{b64_encoded}"
+                            except ImportError:
+                                st.warning("⚠️ Modul penghapus latar (rembg) belum diinstal. Menggunakan foto asli.")
+                                b64_encoded = base64.b64encode(img_bytes).decode('utf-8')
+                                user_b64_img = f"data:{uploaded_file.type};base64,{b64_encoded}"
+                            except Exception as e:
+                                st.warning("⚠️ Gagal memotong latar belakang. Menggunakan foto asli.")
+                                b64_encoded = base64.b64encode(img_bytes).decode('utf-8')
+                                user_b64_img = f"data:{uploaded_file.type};base64,{b64_encoded}"
+                    else:
+                        b64_encoded = base64.b64encode(img_bytes).decode('utf-8')
+                        user_b64_img = f"data:{uploaded_file.type};base64,{b64_encoded}"
 
                 try:
-                    # Tentukan Tema: Diacak HANYA JIKA user mengupload gambar sendiri
+                    # Tentukan Tema: Diacak HANYA JIKA user mengupload gambar sendiri (Total 5 Tema)
                     tema_pilihan = "minimalist"
                     if user_b64_img:
-                        tema_pilihan = random.choice(["minimalist", "elegant_dark", "modern_gradient"])
+                        tema_pilihan = random.choice([
+                            "minimalist", 
+                            "elegant_dark", 
+                            "modern_gradient",
+                            "earthy_nature",  
+                            "vibrant_pop"     
+                        ])
 
                     for idx, slide in enumerate(slides):
                         slide_num = slide.get("slide_number", idx + 1)
@@ -451,10 +507,20 @@ def run():
                                 
                     with st.spinner("📐 Web Layout Engine sedang merakit Poster..."):
                         final_html = render_beautiful_html_poster(structured_data, b64_images, opsi_dimensi, tema=tema_pilihan)
+                        
+                        # Terjemahan Nama Tema untuk ditampilkan ke layar
+                        nama_tema_display = {
+                            "minimalist": "Bersih Minimalis",
+                            "elegant_dark": "Elegan Mewah",
+                            "modern_gradient": "Gradasi Modern",
+                            "earthy_nature": "Alam Organik",
+                            "vibrant_pop": "Warna-Warni Kekinian (Pop)"
+                        }.get(tema_pilihan, "Minimalis")
+
                         if user_b64_img:
-                            st.success(f"🎉 {total_slides} Poster berhasil dirender menggunakan FOTO ASLI ANDA!")
+                            st.success(f"🎉 {total_slides} Poster berhasil dirender menggunakan FOTO ASLI ANDA dengan Tema **{nama_tema_display}**!")
                         else:
-                            st.success(f"🎉 {total_slides} Poster berhasil dirender dengan Mesin Google Imagen 4!")
+                            st.success(f"🎉 {total_slides} Poster berhasil dirender dengan Mesin Google Imagen!")
                         
                         h_px = 1920 if "Vertical" in opsi_dimensi else (1080 if "Square" in opsi_dimensi else 1080)
                         iframe_height = total_slides * (h_px + 100)
@@ -464,18 +530,22 @@ def run():
                     error_msg = str(img_err).lower()
                     detail_asli = str(img_err).split("|")[1] if "|" in str(img_err) else str(img_err)
                     
-                    if "403" in error_msg or "permission" in error_msg or "unsupported" in error_msg or "location" in error_msg:
-                        pesan_awam = "Google membatasi akses fitur pembuat gambar (Imagen 4) untuk versi akun API Anda di wilayah ini."
+                    if "paid plan" in error_msg or "upgrade" in error_msg or "billing" in error_msg:
+                        pesan_awam = "Kebijakan Baru Google: Fitur pembuat gambar (Imagen) kini DIKUNCI TOTAL HANYA untuk akun API berbayar. Jalur gratis telah resmi ditutup."
+                    elif "403" in error_msg or "permission" in error_msg or "unsupported" in error_msg or "location" in error_msg:
+                        pesan_awam = "Google membatasi akses fitur pembuat gambar untuk versi akun API Anda di wilayah ini."
                     elif "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
                         pesan_awam = "Kuota gratis harian Anda untuk membuat gambar dari server Google sudah habis hari ini."
-                    elif "safety" in error_msg or "blocked" in error_msg or "content" in error_msg or "400" in error_msg or "invalid" in error_msg:
-                        pesan_awam = "Filter keamanan ketat Google menolak instruksi gambar karena masih menganggap produk ('Sabun/Kulit') Anda bersinggungan dengan larangan medis/kosmetik."
+                    elif "safety" in error_msg or "blocked" in error_msg or "content" in error_msg:
+                        pesan_awam = "Filter keamanan ketat Google menolak instruksi gambar karena menganggap naskah bersinggungan dengan larangan medis/kosmetik."
+                    elif "400" in error_msg or "invalid" in error_msg:
+                        pesan_awam = "Instruksi ditolak oleh server Google (Kemungkinan besar fitur ini diblokir total untuk akun gratis)."
                     else:
                         pesan_awam = "Server penggambar Google sedang mengalami gangguan teknis (Down) atau terlalu antre."
 
                     st.error(f"⏳ **Mesin Gambar Google Terkendala!**\n\n**Penyebab:** {pesan_awam}\n\n**Log Sistem Asli:** `{detail_asli}`")
                     
-                    st.info("💡 **SOLUSI INSTAN:** Jangan khawatir! Anda tetap bisa membuat desain 100% utuh detik ini juga dengan cara menggunakan fitur **'Upload Gambar Produk'** di bagian atas (menggunakan foto Anda sendiri), ATAU menyalin instruksi praktis di bawah ini ke ChatGPT / Gemini pribadi Anda.")
+                    st.info("💡 **SOLUSI INSTAN:** Karena Google telah menutup jalur API gratis untuk membuat gambar, Anda tetap bisa membuat desain 100% utuh detik ini juga dengan menggunakan fitur **'Upload Gambar Produk'** di bagian atas (menggunakan foto Anda sendiri), ATAU menyalin instruksi praktis di bawah ini ke ChatGPT / Gemini pribadi Anda.")
 
                 # 4. TAMPILAN PROMPT MANUAL
                 st.divider()
