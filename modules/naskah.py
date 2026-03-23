@@ -310,46 +310,21 @@ ATURAN MUTLAK:
     # LANGKAH 6: PROSES AI & HASIL
     # ==========================================
     elif st.session_state.wizard_step == 6:
-        st.subheader("🎬 Hasil Naskah Pro")
-
+        st.subheader("🎬 Hasil Naskah Pro (Format SSML)")
         if not st.session_state.hasil_naskah:
-            if "Threads" in st.session_state.jawaban['konteks']:
-                st.info("💡 **Info Batasan:** Karena Anda memilih platform Pesan Teks (termasuk Threads), sistem membatasi panjang naskah final maksimal **500 karakter** agar dapat diposting tanpa terpotong.")
-            elif "Infografis" in st.session_state.jawaban['tujuan'] or "Infografis" in st.session_state.jawaban['konteks']:
-                st.info("💡 **Info Format:** Karena Anda memilih pembuatan Infografis, AI akan secara otomatis memformat teks menjadi poin-poin padat (bullet points/slide) yang siap disalin ke desain Anda.")
-                
-            with st.spinner("Direktur sedang menyusun naskah yang natural dan berjiwa..."):
+            with st.spinner("Direktur sedang menyusun naskah dengan teknik SSML..."):
                 try:
-                    model_direktur = genai.GenerativeModel(
-                        model_name="gemini-2.5-flash",
-                        system_instruction=DIREKTUR_PROMPT
-                    )
-                    
-                    instruksi_tambahan_platform = ""
-                    if "Threads" in st.session_state.jawaban['konteks']:
-                        instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Karena platform mencakup Threads, PANJANG NASKAH FINAL DI DALAM KOTAK KODE TIDAK BOLEH LEBIH DARI 500 KARAKTER (termasuk spasi)!"
-                    elif "Infografis" in st.session_state.jawaban['tujuan'] or "Infografis" in st.session_state.jawaban['konteks']:
-                        instruksi_tambahan_platform = "\n[ATURAN MUTLAK] Ini adalah teks untuk INFOGRAFIS/PRESENTASI VISUAL. Buat naskah yang sangat terstruktur, gunakan BULLET POINTS atau penomoran slide (Slide 1, Slide 2, dst). Gunakan kalimat yang SUPER PADAT, JELAS, dan HINDARI paragraf panjang naratif. Fokus pada data dan *punchline*. HINDARI SSML SAMA SEKALI."
-
-                    prompt_final = f"""
-                    Tolong buatkan naskah berdasarkan panduan berikut:
-                    - Produk/Jasa: {st.session_state.jawaban['produk']}
-                    - Poin Penting/Keunggulan: {st.session_state.jawaban['poin_penting']}
-                    - Tujuan Pembuatan Naskah: {st.session_state.jawaban['tujuan']}
-                    - Durasi Target: {st.session_state.jawaban['durasi']}
-                    - Target Audiens/Pembaca: {st.session_state.jawaban['audiens']}
-                    - Vibe/Emosi: {st.session_state.jawaban['vibe']}
-                    - Konteks Platform: {st.session_state.jawaban['konteks']} {instruksi_tambahan_platform}
-                    - Catatan Tambahan: {st.session_state.jawaban['tambahan'] if st.session_state.jawaban['tambahan'] else "Tidak ada"}
-                    """
-                    
-                    response = model_direktur.generate_content(prompt_final)
+                    model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=DIREKTUR_PROMPT)
+                    prompt = f"Buat naskah SSML untuk: {st.session_state.jawaban}"
+                    response = model.generate_content(prompt)
                     st.session_state.hasil_naskah = response.text
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
-                    if st.button("Coba Lagi"):
-                        st.rerun()
+                    err_msg = str(e).lower()
+                    if "429" in err_msg or "quota" in err_msg:
+                        st.error("⏳ **Server Google sedang mendinginkan mesin, mohon tunggu 1 menit lalu coba lagi.**")
+                    else:
+                        st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
         else:
             st.markdown(st.session_state.hasil_naskah)
 
