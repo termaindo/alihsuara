@@ -6,12 +6,13 @@ import base64
 import io
 import google.generativeai as genai
 from PIL import Image
+import time
 
 # ==========================================
 # 🧩 1. GOOGLE GEMINI (IMAGEN 3) IMAGE GENERATOR
 # ==========================================
 def generate_image_gemini(prompt, dimensi=""):
-    """Menggunakan Google Imagen 3 untuk produksi gambar kualitas super."""
+    """Menggunakan Google Imagen 3 untuk produksi gambar kualitas super dengan mekanisme Retry."""
     try:
         aspect_ratio = "1:1"
         if "Portrait" in dimensi or "Vertical" in dimensi:
@@ -20,23 +21,39 @@ def generate_image_gemini(prompt, dimensi=""):
             aspect_ratio = "16:9"
 
         imagen = genai.ImageGenerationModel("imagen-3.0-generate-001")
-        result = imagen.generate_images(
-            prompt=prompt,
-            number_of_images=1,
-            aspect_ratio=aspect_ratio,
-            output_mime_type="image/jpeg"
-        )
+        
+        last_err = None
+        # Mekanisme Retry (Penyelamat) jika server sedang antre atau down sesaat
+        for attempt in range(2):
+            try:
+                result = imagen.generate_images(
+                    prompt=prompt,
+                    number_of_images=1,
+                    aspect_ratio=aspect_ratio,
+                    output_mime_type="image/jpeg"
+                )
 
-        if not result.images:
-            raise Exception("Gambar kosong dari server.")
+                if not result.images:
+                    raise Exception("Gambar kosong dari server.")
 
-        img_byte_arr = io.BytesIO()
-        result.images[0].image.save(img_byte_arr, format='JPEG')
-        encoded = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
-        return f"data:image/jpeg;base64,{encoded}"
+                img_byte_arr = io.BytesIO()
+                result.images[0].image.save(img_byte_arr, format='JPEG')
+                encoded = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+                return f"data:image/jpeg;base64,{encoded}"
+            
+            except Exception as e:
+                last_err = str(e)
+                err_lower = last_err.lower()
+                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi)
+                if "403" in err_lower or "400" in err_lower or "safety" in err_lower or "location" in err_lower:
+                    break 
+                time.sleep(3) # Tunggu 3 detik sebelum mencoba lagi
+        
+        # Jika semua percobaan gagal, lempar error asli dari Google
+        raise Exception(f"{last_err}")
 
     except Exception as e:
-        # Menangkap dan meneruskan pesan error asli dari Google ke sistem penanganan kita
+        # Lempar ke penangkap error utama di bawah
         raise Exception(f"GEMINI_IMAGE_ERROR|{str(e)}")
 
 # ==========================================
@@ -77,7 +94,7 @@ ATURAN MUTLAK:
 1. Buat jumlah slide: {opsi_slide}.
 2. image_prompt WAJIB berbahasa Inggris. {slide_rule}
 3. DILARANG menyuruh AI menggambar teks/huruf pada image_prompt.
-4. [SIASAT SENSOR GOOGLE SANGAT PENTING]: DILARANG KERAS menggunakan kata terkait manusia, organ tubuh, penyakit, obat, kesehatan, medis, darah, jarum, atau suplemen pada 'image_prompt'. Gunakan MURNI BENDA MATI ESTETIK (contoh: 'a glowing glass bottle on a marble table with soft studio lighting', 'a clean wooden desk with morning sunlight'). Ini agar gambar tidak diblokir sensor keamanan Google."""
+4. [SIASAT SENSOR GOOGLE SANGAT PENTING]: DILARANG KERAS menggunakan kata terkait manusia, organ tubuh, penyakit, obat, kesehatan, medis, darah, jarum, kulit, wajah, mandi, atau suplemen pada 'image_prompt'. Gunakan MURNI BENDA MATI ESTETIK yang fokus HANYA pada KEMASAN FISIK produk (contoh: 'an elegant pump bottle of liquid soap on a marble bathroom sink with water splashes'). Ini agar gambar lolos sensor kosmetik/kesehatan Google."""
 
     safety_settings = [
         {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -389,17 +406,18 @@ def run():
                         
                 except Exception as img_err:
                     error_msg = str(img_err).lower()
+                    detail_asli = str(img_err).split("|")[1] if "|" in str(img_err) else str(img_err)
                     
-                    if "403" in error_msg or "permission" in error_msg or "unsupported" in error_msg:
-                        pesan_awam = "Google membatasi akses fitur pembuat gambar (Imagen 3) untuk versi akun API gratis Anda di wilayah ini."
+                    if "403" in error_msg or "permission" in error_msg or "unsupported" in error_msg or "location" in error_msg:
+                        pesan_awam = "Google membatasi akses fitur pembuat gambar (Imagen 3) untuk versi akun API Anda di wilayah ini."
                     elif "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
                         pesan_awam = "Kuota gratis harian Anda untuk membuat gambar dari server Google sudah habis hari ini."
-                    elif "safety" in error_msg or "blocked" in error_msg or "content" in error_msg:
-                        pesan_awam = "Filter keamanan ketat Google menolak instruksi gambar karena dianggap mengandung kata sensitif/medis."
+                    elif "safety" in error_msg or "blocked" in error_msg or "content" in error_msg or "400" in error_msg or "invalid" in error_msg:
+                        pesan_awam = "Filter keamanan ketat Google menolak instruksi gambar karena masih menganggap produk ('Sabun/Kulit') Anda bersinggungan dengan larangan medis/kosmetik."
                     else:
-                        pesan_awam = "Server penggambar Google sedang mengalami gangguan teknis atau terlalu sibuk."
+                        pesan_awam = "Server penggambar Google sedang mengalami gangguan teknis (Down) atau terlalu antre."
 
-                    st.error(f"⏳ **Mesin Gambar Google Terkendala!**\n\n**Penyebab:** {pesan_awam}")
+                    st.error(f"⏳ **Mesin Gambar Google Terkendala!**\n\n**Penyebab:** {pesan_awam}\n\n**Log Sistem Asli:** `{detail_asli}`")
                     
                     st.info("💡 **SOLUSI INSTAN:** Jangan khawatir! Anda tetap bisa membuat desain 100% utuh detik ini juga dengan cara menggunakan fitur **'Upload Gambar Produk'** di bagian atas (menggunakan foto Anda sendiri), ATAU menyalin instruksi praktis di bawah ini ke ChatGPT / Gemini pribadi Anda.")
 
