@@ -10,10 +10,10 @@ import google.generativeai as genai
 import time
 
 # ==========================================
-# 🧩 1. GOOGLE GEMINI (IMAGEN 3) IMAGE GENERATOR via REST API
+# 🧩 1. GOOGLE GEMINI (IMAGEN 4) IMAGE GENERATOR via REST API
 # ==========================================
 def generate_image_gemini(prompt, dimensi=""):
-    """Menggunakan Google Imagen 3 via Jalur Tol Langsung (REST API) untuk produksi gambar kualitas super."""
+    """Menggunakan Google Imagen 4 via Jalur Tol Langsung (REST API) untuk produksi gambar kualitas super."""
     try:
         aspect_ratio = "1:1"
         if "Portrait" in dimensi or "Vertical" in dimensi:
@@ -22,8 +22,8 @@ def generate_image_gemini(prompt, dimensi=""):
             aspect_ratio = "16:9"
 
         api_key = st.secrets["GEMINI_API_KEY"]
-        # Menggunakan jalur langsung REST API Google AI Studio untuk Imagen 3
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key={api_key}"
+        # MENGGUNAKAN MESIN TERBARU GOOGLE (IMAGEN 4) YANG MENDUKUNG PREDICT
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={api_key}"
         
         headers = {'Content-Type': 'application/json'}
         payload = {
@@ -56,8 +56,8 @@ def generate_image_gemini(prompt, dimensi=""):
             except Exception as e:
                 last_err = str(e)
                 err_lower = last_err.lower()
-                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi/Permission)
-                if "403" in err_lower or "400" in err_lower or "safety" in err_lower or "location" in err_lower:
+                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi/Permission/404)
+                if "403" in err_lower or "404" in err_lower or "400" in err_lower or "safety" in err_lower or "location" in err_lower:
                     break 
                 time.sleep(3) # Tunggu 3 detik sebelum mencoba lagi
         
@@ -454,7 +454,7 @@ def run():
                         if user_b64_img:
                             st.success(f"🎉 {total_slides} Poster berhasil dirender menggunakan FOTO ASLI ANDA!")
                         else:
-                            st.success(f"🎉 {total_slides} Poster berhasil dirender dengan Mesin Google Imagen!")
+                            st.success(f"🎉 {total_slides} Poster berhasil dirender dengan Mesin Google Imagen 4!")
                         
                         h_px = 1920 if "Vertical" in opsi_dimensi else (1080 if "Square" in opsi_dimensi else 1080)
                         iframe_height = total_slides * (h_px + 100)
@@ -465,7 +465,7 @@ def run():
                     detail_asli = str(img_err).split("|")[1] if "|" in str(img_err) else str(img_err)
                     
                     if "403" in error_msg or "permission" in error_msg or "unsupported" in error_msg or "location" in error_msg:
-                        pesan_awam = "Google membatasi akses fitur pembuat gambar (Imagen 3) untuk versi akun API Anda di wilayah ini."
+                        pesan_awam = "Google membatasi akses fitur pembuat gambar (Imagen 4) untuk versi akun API Anda di wilayah ini."
                     elif "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
                         pesan_awam = "Kuota gratis harian Anda untuk membuat gambar dari server Google sudah habis hari ini."
                     elif "safety" in error_msg or "blocked" in error_msg or "content" in error_msg or "400" in error_msg or "invalid" in error_msg:
