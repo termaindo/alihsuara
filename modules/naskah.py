@@ -307,24 +307,56 @@ ATURAN MUTLAK:
                     st.warning("Mohon pilih atau isi konteks platform terlebih dahulu.")
 
     # ==========================================
-    # LANGKAH 6: PROSES AI & HASIL
+    # LANGKAH 6: PROSES AI & HASIL (DIPERBARUI)
     # ==========================================
     elif st.session_state.wizard_step == 6:
-        st.subheader("🎬 Hasil Naskah Pro (Format SSML)")
+        # Menyesuaikan Judul & Instruksi berdasarkan Tujuan Pengguna
+        tujuan_naskah = st.session_state.jawaban.get("tujuan", "")
+        if "Audio" in tujuan_naskah or "Video" in tujuan_naskah:
+            header_text = "🎬 Hasil Naskah Pro (Format Audio / SSML)"
+            spinner_text = "Direktur sedang menyusun naskah dengan teknik SSML..."
+            instruksi_tambahan = "WAJIB gunakan tag SSML untuk rekaman."
+        else:
+            header_text = "📝 Hasil Naskah Pro (Format Teks / Visual)"
+            spinner_text = "Direktur sedang menyusun naskah Copywriting visual..."
+            instruksi_tambahan = "DILARANG KERAS menggunakan tag SSML. Gunakan bahasa copywriting biasa."
+
+        st.subheader(header_text)
+
         if not st.session_state.hasil_naskah:
-            with st.spinner("Direktur sedang menyusun naskah dengan teknik SSML..."):
+            with st.spinner(spinner_text):
                 try:
                     model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=DIREKTUR_PROMPT)
-                    prompt = f"Buat naskah SSML untuk: {st.session_state.jawaban}"
-                    response = model.generate_content(prompt)
+                    
+                    # Memperbaiki prompt final agar AI merangkum sesuai pilihan pengguna
+                    prompt_final = f"""
+                    Tolong buatkan naskah berdasarkan panduan berikut:
+                    - Produk/Jasa: {st.session_state.jawaban.get('produk', '')}
+                    - Poin Penting: {st.session_state.jawaban.get('poin_penting', '')}
+                    - Tujuan Naskah: {st.session_state.jawaban.get('tujuan', '')}
+                    - Target Durasi: {st.session_state.jawaban.get('durasi', '')}
+                    - Target Audiens: {st.session_state.jawaban.get('audiens', '')}
+                    - Suasana/Vibe: {st.session_state.jawaban.get('vibe', '')}
+                    - Konteks Platform: {st.session_state.jawaban.get('konteks', '')}
+                    - Catatan Tambahan: {st.session_state.jawaban.get('tambahan', '')}
+                    
+                    ATURAN KHUSUS: {instruksi_tambahan}
+                    """
+                    
+                    response = model.generate_content(prompt_final)
                     st.session_state.hasil_naskah = response.text
                     st.rerun()
                 except Exception as e:
                     err_msg = str(e).lower()
                     if "429" in err_msg or "quota" in err_msg:
-                        st.error("⏳ **Server Google sedang mendinginkan mesin, mohon tunggu 1 menit lalu coba lagi.**")
+                        st.error("⏳ **Server Google sedang mendinginkan mesin.**")
+                        st.info("💡 **Penjelasan:** Membuka aplikasi di banyak *tab* atau lembar browser secara bersamaan akan membagi kuota yang sama. Jika 1 tab kehabisan kuota per menit, tab lain juga akan terkena dampaknya. Silakan tutup tab yang tidak terpakai, tunggu 1 menit, lalu klik tombol di bawah.")
                     else:
                         st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
+                    
+                    # Tombol 'Coba Lagi' agar sistem tidak spam auto-refresh saat ada widget berubah
+                    if st.button("🔄 Coba Lagi Sekarang"):
+                        st.rerun()
         else:
             st.markdown(st.session_state.hasil_naskah)
 
