@@ -291,7 +291,7 @@ ATURAN MUTLAK:
                 st.session_state.wizard_step = 4
                 st.rerun()
         with col2:
-            if st.button("✨ Hasilkan Naskah Berjiwa", type="primary"):
+            if st.button("✨ Lanjutkan ke Tahap Produksi", type="primary"):
                 if jawaban_konteks and jawaban_konteks != "Pilih...":
                     st.session_state.jawaban["konteks"] = jawaban_konteks
                     st.session_state.jawaban["produk"] = edit_produk
@@ -307,7 +307,7 @@ ATURAN MUTLAK:
                     st.warning("Mohon pilih atau isi konteks platform terlebih dahulu.")
 
     # ==========================================
-    # LANGKAH 6: PROSES AI & HASIL (DIPERBARUI)
+    # LANGKAH 6: PROSES AI & HASIL (DIPERBARUI DENGAN TOMBOL STATIS)
     # ==========================================
     elif st.session_state.wizard_step == 6:
         # Menyesuaikan Judul & Instruksi berdasarkan Tujuan Pengguna
@@ -324,39 +324,38 @@ ATURAN MUTLAK:
         st.subheader(header_text)
 
         if not st.session_state.hasil_naskah:
-            with st.spinner(spinner_text):
-                try:
-                    model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=DIREKTUR_PROMPT)
-                    
-                    # Memperbaiki prompt final agar AI merangkum sesuai pilihan pengguna
-                    prompt_final = f"""
-                    Tolong buatkan naskah berdasarkan panduan berikut:
-                    - Produk/Jasa: {st.session_state.jawaban.get('produk', '')}
-                    - Poin Penting: {st.session_state.jawaban.get('poin_penting', '')}
-                    - Tujuan Naskah: {st.session_state.jawaban.get('tujuan', '')}
-                    - Target Durasi: {st.session_state.jawaban.get('durasi', '')}
-                    - Target Audiens: {st.session_state.jawaban.get('audiens', '')}
-                    - Suasana/Vibe: {st.session_state.jawaban.get('vibe', '')}
-                    - Konteks Platform: {st.session_state.jawaban.get('konteks', '')}
-                    - Catatan Tambahan: {st.session_state.jawaban.get('tambahan', '')}
-                    
-                    ATURAN KHUSUS: {instruksi_tambahan}
-                    """
-                    
-                    response = model.generate_content(prompt_final)
-                    st.session_state.hasil_naskah = response.text
-                    st.rerun()
-                except Exception as e:
-                    err_msg = str(e).lower()
-                    if "429" in err_msg or "quota" in err_msg:
-                        st.error("⏳ **Server Google sedang mendinginkan mesin.**")
-                        st.info("💡 **Penjelasan:** Membuka aplikasi di banyak *tab* atau lembar browser secara bersamaan akan membagi kuota yang sama. Jika 1 tab kehabisan kuota per menit, tab lain juga akan terkena dampaknya. Silakan tutup tab yang tidak terpakai, tunggu 1 menit, lalu klik tombol di bawah.")
-                    else:
-                        st.error(f"Terjadi kesalahan saat menghubungi AI: {e}")
-                    
-                    # Tombol 'Coba Lagi' agar sistem tidak spam auto-refresh saat ada widget berubah
-                    if st.button("🔄 Coba Lagi Sekarang"):
-                        st.rerun()
+            st.info("💡 **Pengaturan naskah Anda sudah diamankan!** Silakan tekan tombol di bawah ini untuk menginstruksikan AI menyusun naskah Anda.")
+            
+            if st.button("✨ Eksekusi Naskah Sekarang", type="primary", use_container_width=True):
+                with st.spinner(spinner_text):
+                    try:
+                        model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=DIREKTUR_PROMPT)
+                        
+                        prompt_final = f"""
+                        Tolong buatkan naskah berdasarkan panduan berikut:
+                        - Produk/Jasa: {st.session_state.jawaban.get('produk', '')}
+                        - Poin Penting: {st.session_state.jawaban.get('poin_penting', '')}
+                        - Tujuan Naskah: {st.session_state.jawaban.get('tujuan', '')}
+                        - Target Durasi: {st.session_state.jawaban.get('durasi', '')}
+                        - Target Audiens: {st.session_state.jawaban.get('audiens', '')}
+                        - Suasana/Vibe: {st.session_state.jawaban.get('vibe', '')}
+                        - Konteks Platform: {st.session_state.jawaban.get('konteks', '')}
+                        - Catatan Tambahan: {st.session_state.jawaban.get('tambahan', '')}
+                        
+                        ATURAN KHUSUS: {instruksi_tambahan}
+                        """
+                        
+                        response = model.generate_content(prompt_final)
+                        st.session_state.hasil_naskah = response.text
+                        st.rerun()  # Hanya refresh layar JIKA BERHASIL memanggil API
+                        
+                    except Exception as e:
+                        err_msg = str(e).lower()
+                        if "429" in err_msg or "quota" in err_msg:
+                            st.error("⏳ **Mesin AI Sedang Beristirahat (Batas Kuota Beruntun).**")
+                            st.info("💡 **Solusi Aman:** Karena request beruntun terlalu cepat, Google menghentikan sementara aksesnya. **TIDAK PERLU KEMBALI KE AWAL ATAU MENEKAN TOMBOL LAIN**. Cukup lepaskan *mouse* Anda, **tunggu 1 menit penuh**, lalu klik kembali tombol **'✨ Eksekusi Naskah Sekarang'** di atas. Data Anda aman dan tidak akan hilang.")
+                        else:
+                            st.error(f"❌ Terjadi kesalahan saat menghubungi AI: {e}")
         else:
             st.markdown(st.session_state.hasil_naskah)
 
