@@ -23,31 +23,22 @@ def setup_gemini():
 # FUNGSI: PEMROSESAN GAMBAR (RESIZE & REMBG)
 # ==========================================
 def process_product_image(uploaded_file):
-    """
-    Mengubah ukuran gambar maksimal 800x800px lalu menghapus background.
-    Mengembalikan string base64 untuk dirender di HTML.
-    """
     try:
-        # [SOLUSI STUCK]: Lazy Loading import rembg
-        # rembg hanya dipanggil saat fungsi ini benar-benar dijalankan oleh tombol
-        from rembg import remove 
+        # Panggil fungsi remove dan new_session dari rembg
+        from rembg import remove, new_session 
 
-        # Buka gambar menggunakan Pillow
         image = Image.open(uploaded_file)
-        
-        # [CRITICAL] Resize gambar untuk menyelamatkan RAM Server Streamlit
         image.thumbnail((800, 800))
         
-        # Konversi ke format byte
         buf = BytesIO()
         image.save(buf, format="PNG")
         byte_im = buf.getvalue()
         
-        # Hapus background menggunakan rembg
-        with st.spinner("✨ Sedang memotong background gambar secara otomatis (Mungkin butuh waktu beberapa detik pada proses pertama)..."):
-            output_bytes = remove(byte_im)
+        with st.spinner("✨ Sedang memotong background gambar dengan model ringan..."):
+            # [KUNCI RAHASIA]: Gunakan model 'u2netp' yang sangat ringan!
+            sesi_ringan = new_session("u2netp")
+            output_bytes = remove(byte_im, session=sesi_ringan)
             
-        # Ubah ke base64 agar bisa disematkan langsung ke dalam HTML tag <img>
         base64_img = base64.b64encode(output_bytes).decode('utf-8')
         return f"data:image/png;base64,{base64_img}"
     except Exception as e:
