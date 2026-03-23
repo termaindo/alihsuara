@@ -5,15 +5,15 @@ import json
 import base64
 import io
 import random
+import requests
 import google.generativeai as genai
-from PIL import Image
 import time
 
 # ==========================================
-# 🧩 1. GOOGLE GEMINI (IMAGEN 3) IMAGE GENERATOR
+# 🧩 1. GOOGLE GEMINI (IMAGEN 3) IMAGE GENERATOR via REST API
 # ==========================================
 def generate_image_gemini(prompt, dimensi=""):
-    """Menggunakan Google Imagen 3 untuk produksi gambar kualitas super dengan mekanisme Retry."""
+    """Menggunakan Google Imagen 3 via Jalur Tol Langsung (REST API) untuk produksi gambar kualitas super."""
     try:
         aspect_ratio = "1:1"
         if "Portrait" in dimensi or "Vertical" in dimensi:
@@ -21,31 +21,42 @@ def generate_image_gemini(prompt, dimensi=""):
         elif "Landscape" in dimensi:
             aspect_ratio = "16:9"
 
-        imagen = genai.ImageGenerationModel("imagen-3.0-generate-001")
+        api_key = st.secrets["GEMINI_API_KEY"]
+        # Menggunakan jalur langsung REST API Google AI Studio untuk Imagen 3
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key={api_key}"
+        
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "instances": [{"prompt": prompt}],
+            "parameters": {
+                "sampleCount": 1,
+                "aspectRatio": aspect_ratio
+            }
+        }
         
         last_err = None
         # Mekanisme Retry (Penyelamat) jika server sedang antre atau down sesaat
         for attempt in range(2):
             try:
-                result = imagen.generate_images(
-                    prompt=prompt,
-                    number_of_images=1,
-                    aspect_ratio=aspect_ratio,
-                    output_mime_type="image/jpeg"
-                )
+                response = requests.post(url, headers=headers, json=payload)
+                
+                # Jika HTTP ditolak (Sensor, Kuota, dll)
+                if response.status_code != 200:
+                    error_detail = response.text
+                    raise Exception(f"HTTP {response.status_code}: {error_detail}")
 
-                if not result.images:
+                result = response.json()
+
+                if 'predictions' not in result or not result['predictions']:
                     raise Exception("Gambar kosong dari server.")
 
-                img_byte_arr = io.BytesIO()
-                result.images[0].image.save(img_byte_arr, format='JPEG')
-                encoded = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
-                return f"data:image/jpeg;base64,{encoded}"
+                b64_img = result['predictions'][0]['bytesBase64Encoded']
+                return f"data:image/jpeg;base64,{b64_img}"
             
             except Exception as e:
                 last_err = str(e)
                 err_lower = last_err.lower()
-                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi)
+                # JANGAN lakukan retry jika errornya adalah blokir permanen dari Google (Sensor/Lokasi/Permission)
                 if "403" in err_lower or "400" in err_lower or "safety" in err_lower or "location" in err_lower:
                     break 
                 time.sleep(3) # Tunggu 3 detik sebelum mencoba lagi
