@@ -24,7 +24,7 @@ def setup_gemini():
 def process_product_image(uploaded_file):
     try:
         image = Image.open(uploaded_file)
-        # Menjaga RAM server tetap aman (Max 800px)
+        # Menjaga RAM server tetap aman
         image.thumbnail((800, 800))
         
         buf = BytesIO()
@@ -60,25 +60,28 @@ def generate_json_structure(naskah):
         response = model.generate_content(prompt)
         match = re.search(r'\[.*\]', response.text, re.DOTALL)
         if match:
-            return json.loads(match.group(0))
-        return json.loads(response.text)
+            # Pastikan selalu mengembalikan format list (array)
+            data = json.loads(match.group(0))
+            return data if isinstance(data, list) else [data]
+        
+        data = json.loads(response.text)
+        return data if isinstance(data, list) else [data]
     except Exception as e:
         if "429" in str(e): return {"error": "429"}
         return {"error": "FORMAT_JSON_RUSAK"}
 
 # ==========================================
-# ENGINE TEMA & CSS (LEGABILITAS & STEMPEL 2 BARIS)
+# ENGINE TEMA & CSS (SLIDE INDIVIDUAL)
 # ==========================================
 def get_theme_css(theme_name, layout_type, mode_foto):
-    # Penentuan Rasio Dimensi
+    # Dimensi menggunakan min-height agar proporsional
     if layout_type == "Portrait (9:16)":
-        aspect_ratio, max_width = "9 / 16", "350px"
+        max_width, min_height = "380px", "675px"
     elif layout_type == "Square (1:1)":
-        aspect_ratio, max_width = "1 / 1", "450px"
+        max_width, min_height = "450px", "450px"
     else:
-        aspect_ratio, max_width = "16 / 9", "700px"
+        max_width, min_height = "700px", "393px"
 
-    # Palet Warna & Tipografi Lega
     themes = {
         "minimalist": {"bg": "#ffffff", "text": "#212121", "accent": "#f5f5f5", "font": "sans-serif"},
         "elegant_dark": {"bg": "#1a1a2e", "text": "#ffffff", "accent": "#16213e", "font": "serif"},
@@ -89,7 +92,6 @@ def get_theme_css(theme_name, layout_type, mode_foto):
     
     t = themes.get(theme_name, themes["minimalist"])
     
-    # Efek Foto
     if mode_foto == "Foto Studio (Latar Putih)":
         img_style = "mix-blend-mode: multiply; filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.1));"
     else:
@@ -98,11 +100,11 @@ def get_theme_css(theme_name, layout_type, mode_foto):
     css = f"""
     <style>
         .poster-container {{
-            width: 100%; max-width: {max_width}; aspect-ratio: {aspect_ratio};
+            width: 100%; max-width: {max_width}; min-height: {min_height};
             background: {t['bg']}; color: {t['text']}; font-family: {t['font']};
-            margin: 0 auto 40px auto; display: flex; flex-direction: column;
-            justify-content: space-between; border-radius: 20px;
-            padding: 35px; box-sizing: border-box; box-shadow: 0 20px 45px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; justify-content: space-between; 
+            border-radius: 20px; padding: 35px; box-sizing: border-box; 
+            box-shadow: 0 20px 45px rgba(0,0,0,0.15); margin: 0 auto;
         }}
         .poster-header {{ 
             text-align: center; font-size: 1.4em; font-weight: 600; 
@@ -111,7 +113,7 @@ def get_theme_css(theme_name, layout_type, mode_foto):
         }}
         .poster-content {{ 
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; flex-grow: 1; gap: 30px; 
+            flex-grow: 1; gap: 30px; margin-bottom: 20px;
         }}
         .poster-image-wrap {{ width: 100%; display: flex; justify-content: center; }}
         .poster-image-wrap img {{
@@ -122,13 +124,11 @@ def get_theme_css(theme_name, layout_type, mode_foto):
         .item-box {{ 
             background: {t['accent']}; padding: 15px 20px; border-radius: 10px; 
             font-size: 0.95em; width: 100%; font-weight: 500; 
-            line-height: 1.6; border-left: 6px solid {t['text']};
-            box-sizing: border-box;
+            line-height: 1.5; border-left: 6px solid {t['text']}; box-sizing: border-box;
         }}
-        /* STEMPEL PATEN 2 BARIS */
         .poster-footer {{ 
             text-align: center; font-size: 0.72em; border-top: 1px solid rgba(128,128,128,0.3); 
-            padding-top: 15px; margin-top: 25px; font-weight: 600; line-height: 1.6;
+            padding-top: 15px; font-weight: 600; line-height: 1.6;
         }}
         .footer-line-1 {{ margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }}
         .footer-line-2 {{ 
@@ -140,17 +140,17 @@ def get_theme_css(theme_name, layout_type, mode_foto):
     """
     return css
 
-def render_html_poster(json_slide, base64_img, layout_type, theme_name, mode_foto):
+def render_single_slide_html(json_slide, base64_img, layout_type, theme_name, mode_foto):
     css = get_theme_css(theme_name, layout_type, mode_foto)
-    items_html = "".join([f"<div class='item-box'>✓ {i}</div>" for i in json_slide.get("items", [])])
     
-    # SVG ICONS (Cleaned, no extra text)
     icon_ig = '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'
     icon_web = '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-1.001 19.923c-3.324-.431-5.992-2.793-6.817-6.002h2.298c.241 1.488.666 2.822 1.233 3.885-.888-.637-1.646-1.41-2.233-2.283.587.873 1.345 1.646 2.233 2.283.398.745.857 1.405 1.373 1.956-.036.053-.071.104-.107.161zm1.001-1.006c-.846 0-1.637-.621-2.277-1.657-.591-.958-1.026-2.228-1.223-3.66h7c-.197 1.432-.632 2.702-1.223 3.66-.64 1.036-1.431 1.657-2.277 1.657zm8.818-7.002h-2.298c-.241 1.488-.666 2.822-1.233 3.885.888-.637 1.646-1.41 2.233-2.283-.587.873-1.345 1.646-2.233 2.283-.398.745-.857 1.405-1.373 1.956.036.053.071.104.107.161 3.324-.431 5.992-2.793 6.817-6.002zm-10.819-10.923c3.324.431 5.992 2.793 6.817 6.002h-2.298c-.241-1.488-.666-2.822-1.233-3.885.888.637 1.646 1.41 2.233 2.283-.587-.873-1.345-1.646-2.233-2.283-.398-.745-.857-1.405-1.373-1.956.036-.053.071-.104.107-.161zm1.001 1.006c.846 0 1.637.621 2.277 1.657.591.958 1.026 2.228 1.223 3.66h-7c.197-1.432.632-2.702 1.223-3.66.64-1.036 1.431-1.657 2.277-1.657zm-8.818 7.002h2.298c.241-1.488.666-2.822 1.233-3.885-.888.637-1.646 1.41-2.233 2.283.587-.873 1.345-1.646 2.233-2.283.398-.745.857-1.405 1.373-1.956-.036-.053-.071-.104-.107-.161-3.324.431-5.992 2.793-6.817 6.002z"/></svg>'
 
+    items_html = "".join([f"<div class='item-box'>✓ {i}</div>" for i in json_slide.get("items", [])])
+    
     html = f"""
     {css}
-    <div class="poster-container">
+    <div class="poster-container" id="capture-area">
         <div class="poster-header">{json_slide.get('infographic_title', 'Visual Produk')}</div>
         <div class="poster-content">
             <div class="poster-image-wrap"><img src="{base64_img}"></div>
@@ -206,89 +206,95 @@ def run():
                     
                     if isinstance(json_data, dict) and json_data.get("error") == "429":
                         st.error("⏳ **Server Google sedang mendinginkan mesin, mohon tunggu 1 menit lalu tekan tombolnya lagi.**")
+                    elif isinstance(json_data, dict) and json_data.get("error") == "FORMAT_JSON_RUSAK":
+                        st.error("⏳ **Mesin AI Sedang Memproses Ulang:** Gagal merapikan tata letak naskah. Silakan klik tombol sekali lagi.")
                     else:
                         st.success("✨ Visual Berhasil Dicetak!")
+                        
+                        # Pilih satu tema acak yang sama untuk semua slide agar seragam
                         theme = random.choice(["minimalist", "elegant_dark", "modern_gradient", "earthy_nature", "vibrant_pop"])
                         
-                        all_slides_html = ""
-                        if isinstance(json_data, list):
-                            for slide in json_data:
-                                all_slides_html += render_html_poster(slide, base64_img, layout_choice, theme, mode_foto)
-                        else:
-                            all_slides_html = render_html_poster(json_data, base64_img, layout_choice, theme, mode_foto)
+                        # Simpan hasil render HTML per slide ke dalam sebuah list
+                        list_html_slides = []
+                        for slide in json_data:
+                            slide_html = render_single_slide_html(slide, base64_img, layout_choice, theme, mode_foto)
+                            list_html_slides.append(slide_html)
                         
-                        st.session_state.infografis_output = all_slides_html
+                        st.session_state.infografis_output_list = list_html_slides
             except Exception:
                 st.error("❌ Terjadi gangguan komunikasi dengan Server AI Google.")
 
-    # --- TAMPILAN OUTPUT & DOWNLOAD (KINI MENGUNDUH PNG) ---
-    if "infografis_output" in st.session_state:
-        # Kita bungkus output dengan script html2canvas untuk memotret desain menjadi PNG
-        html_with_download = f"""
-        <html>
-        <head>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-            <style>
-                body {{ margin:0; background:#f0f2f6; display:flex; flex-direction:column; align-items:center; padding:20px 0; font-family: sans-serif; }}
-                .download-btn {{
-                    background-color: #ff4b4b; color: white; border: none; padding: 12px 24px;
-                    font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;
-                    margin-top: 10px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                    transition: 0.3s;
-                }}
-                .download-btn:hover {{ background-color: #ff3333; box-shadow: 0 6px 12px rgba(0,0,0,0.2); }}
-            </style>
-        </head>
-        <body>
-            <button class="download-btn" onclick="downloadImage()">📥 Unduh Hasil Desain (PNG)</button>
+    # --- TAMPILAN OUTPUT & DOWNLOAD PER SLIDE (PNG SCRIPT) ---
+    if "infografis_output_list" in st.session_state:
+        st.markdown("### 🖼️ Hasil Produksi Desain")
+        st.info("💡 Berikut adalah desain Anda. Jika naskah panjang, kami membaginya ke beberapa slide. Unduh satu per satu menggunakan tombol di bawah masing-masing gambar.")
+        
+        # Loop untuk menampilkan slide satu per satu dengan tombol unduh masing-masing
+        for idx, slide_html in enumerate(st.session_state.infografis_output_list):
+            st.markdown(f"**📄 Slide {idx + 1}**")
             
-            <div id="capture-area" style="display:flex; flex-direction:column; align-items:center; width:100%; padding:20px;">
-                {st.session_state.infografis_output}
-            </div>
-            
-            <script>
-                function downloadImage() {{
-                    const btn = document.querySelector('.download-btn');
-                    const originalText = btn.innerText;
-                    btn.innerText = "⏳ Sedang Memproses Gambar...";
-                    
-                    /* Mengambil screenshot dari area desain */
-                    html2canvas(document.getElementById("capture-area"), {{
-                        scale: 2, /* Memastikan gambar PNG yang diunduh beresolusi HD/Tinggi */
-                        useCORS: true,
-                        backgroundColor: "#f0f2f6"
-                    }}).then(canvas => {{
-                        let link = document.createElement('a');
-                        link.download = 'Desain_Studio_Kreatif.png';
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                        btn.innerText = originalText;
-                    }}).catch(err => {{
-                        console.error("Error: ", err);
-                        btn.innerText = "❌ Gagal Mengunduh";
-                    }});
-                }}
-            </script>
-        </body>
-        </html>
-        """
-        # Render frame HTML setinggi 950px untuk memberikan ruang ekstra pada tombol
-        st.components.v1.html(html_with_download, height=950, scrolling=True)
+            html_with_download = f"""
+            <html>
+            <head>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+                <style>
+                    body {{ margin:0; background:#f0f2f6; display:flex; flex-direction:column; align-items:center; font-family: sans-serif; padding-top: 10px; }}
+                    .download-btn {{
+                        background-color: #ff4b4b; color: white; border: none; padding: 12px 24px;
+                        font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;
+                        margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        transition: 0.3s; width: 300px;
+                    }}
+                    .download-btn:hover {{ background-color: #ff3333; box-shadow: 0 6px 12px rgba(0,0,0,0.2); }}
+                    #wrapper {{ width: 100%; display: flex; justify-content: center; }}
+                </style>
+            </head>
+            <body>
+                <button class="download-btn" onclick="downloadImage()">📥 Unduh Slide {idx + 1} (PNG)</button>
+                <div id="wrapper">
+                    {slide_html}
+                </div>
+                
+                <script>
+                    function downloadImage() {{
+                        const btn = document.querySelector('.download-btn');
+                        const originalText = btn.innerText;
+                        btn.innerText = "⏳ Sedang Memproses Gambar...";
+                        
+                        html2canvas(document.getElementById("capture-area"), {{
+                            scale: 2, 
+                            useCORS: true,
+                            backgroundColor: null /* Agar background radius tetap rapi */
+                        }}).then(canvas => {{
+                            let link = document.createElement('a');
+                            link.download = 'Slide_{idx + 1}_Studio_Kreatif.png';
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                            btn.innerText = originalText;
+                        }}).catch(err => {{
+                            console.error("Error: ", err);
+                            btn.innerText = "❌ Gagal Mengunduh";
+                        }});
+                    }}
+                </script>
+            </body>
+            </html>
+            """
+            # Tinggi diset 850px agar tombol dan satu slide bisa tampil pas tanpa terpotong
+            st.components.v1.html(html_with_download, height=850, scrolling=True)
+            st.markdown("<br>", unsafe_allow_html=True) # Jarak antar frame slide
 
-
-    # --- PANDUAN 2 LANGKAH MANUAL (STRUKTUR DISIPLIN) ---
+    # --- PANDUAN 2 LANGKAH MANUAL ---
     st.divider()
     st.markdown("### 🤖 Instruksi Praktis (Copas ke Gemini Pribadi Anda)")
     st.info("Jika Anda tidak punya foto sendiri, gunakan panduan langkah demi langkah di bawah ini:")
 
-    # LANGKAH 1
     st.markdown("**Langkah 1: Membuat Konsep Konten (Copywriting) Salin teks ini, dengan cara klik icon tumpukan dokumen di sebelah kanan atas kotak di bawah ini dan tempel ke AI**")
     prompt_copywriting = f"""Saya memiliki naskah produk: '{naskah_mentah}'. Tolong bedah naskah ini menjadi konsep konten infografis yang menarik. Jika naskahnya panjang, buatkan menjadi urutan 3-5 slide (carousel). Tentukan judul yang memikat, poin-poin manfaat, dan ajakan bertindak (CTA) untuk setiap slidenya. Pastikan di bagian bawah setiap slide memuat stempel paten 2 baris: 
 Baris 1: Studio Kreatif Pro - KTB UKM Jatim
 Baris 2: Instagram: @ktbukm.jatim | Website: https://ktbukm-jatim.store"""
     st.code(prompt_copywriting, language="text")
 
-    # LANGKAH 2
     st.markdown("**Langkah 2: Membuat Prompt Gambar (Visual Design)**")
     prompt_visual = "Berdasarkan konsep konten slide tersebut, buatkan saya 'Image Prompt' yang sangat detil untuk saya masukkan ke mesin AI Image Generator (seperti Midjourney atau DALL-E). Pastikan prompt tersebut menjelaskan gaya pencahayaan, komposisi produk, warna latar belakang yang estetik, dan suasana profesional untuk katalog produk UMKM."
     st.code(prompt_visual, language="text")
