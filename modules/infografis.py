@@ -284,25 +284,41 @@ def run():
             st.components.v1.html(html_with_download, height=850, scrolling=True)
             st.markdown("<br>", unsafe_allow_html=True) # Jarak antar frame slide
 
-    # --- PANDUAN 2 LANGKAH MANUAL ---
+    # --- PANDUAN MANUAL (PEMBUATAN INFOGRAFIS DI LUAR APLIKASI) ---
     st.divider()
-    st.markdown("### 🤖 Instruksi Praktis (Copas ke Gemini Pribadi Anda)")
-    st.info("Jika Anda tidak punya foto sendiri, gunakan panduan langkah demi langkah di bawah ini:")
+    st.markdown("### 🤖 Instruksi Praktis Pembuatan Infografis di Platform AI Lain")
+    st.info("Jika Anda ingin membuat infografis menggunakan AI Generator lain secara mandiri, ikuti panduan berikut:")
 
-    st.markdown("**Langkah 1: Membuat Konsep Konten (Copywriting) Salin teks ini, dengan cara klik icon tumpukan dokumen di sebelah kanan atas kotak di bawah ini dan tempel ke AI**")
+    # LANGKAH 1
+    st.markdown("**Langkah 1: Buka Platform AI**")
+    st.write("Buka halaman platform AI yang umum dipakai dan memiliki fitur *image generator* (pembuat gambar), misalnya **Gemini**, **ChatGPT (Plus/Premium)**, atau **Claude**.")
+
+    # LANGKAH 2
+    st.markdown("**Langkah 2: Siapkan Konsep Konten**")
+    punya_logo = st.radio("Apakah Anda memiliki file logo KTB UKM Jatim untuk dipasang secara manual nanti?", ["Ya, saya punya", "Tidak, saya tidak punya"])
     
-    # REVISI PROMPT: Menggunakan perintah langsung, memisahkan bahan baku (naskah) di akhir.
-    prompt_copywriting = f"""Tolong bedah teks promosi di bawah ini menjadi konsep konten infografis yang menarik. Jika teksnya panjang, buatkan menjadi urutan 3-5 slide (carousel). Tentukan judul yang memikat, poin-poin manfaat, dan ajakan bertindak (CTA) untuk setiap slidenya. Pastikan di bagian bawah setiap slide memuat stempel paten 2 baris:
-Baris 1: Studio Kreatif Pro - KTB UKM Jatim
-Baris 2: Instagram: @ktbukm.jatim | Website: https://ktbukm-jatim.store
+    if punya_logo == "Ya, saya punya":
+        prompt_copywriting = f"""Tolong bedah teks promosi di bawah ini menjadi konsep konten infografis yang menarik. Jika teksnya panjang, buatkan menjadi urutan 3-5 slide (carousel). Tentukan judul yang memikat, poin-poin manfaat, dan ajakan bertindak (CTA) untuk setiap slidenya. Pastikan di bagian bawah setiap slide memuat stempel paten 2 baris:
+Studio Kreatif Pro - KTB UKM Jatim
+Instagram: @ktbukm.jatim | Website: https://ktbukm-jatim.store
 
 Berikut teks promosinya:
 {naskah_mentah}"""
-    
+    else:
+        prompt_copywriting = f"""Tolong bedah teks promosi di bawah ini menjadi konsep konten infografis yang menarik. Jika teksnya panjang, buatkan menjadi urutan 3-5 slide (carousel). Tentukan judul yang memikat, poin-poin manfaat, dan ajakan bertindak (CTA) untuk setiap slidenya. Buat konsep desain TANPA keharusan memasang logo KTB UKM Jatim di pojok kanan atas. Namun, pastikan di bagian bawah setiap slide memuat stempel paten 2 baris:
+Studio Kreatif Pro - KTB UKM Jatim
+Instagram: @ktbukm.jatim | Website: https://ktbukm-jatim.store
+
+Berikut teks promosinya:
+{naskah_mentah}"""
+
+    st.write("Salin (copy) teks instruksi di bawah ini dan tempel (paste) ke mesin AI pilihan Anda:")
     st.code(prompt_copywriting, language="text")
 
-    st.markdown("**Langkah 2: Membuat Prompt Gambar (Visual Design)**")
-    prompt_visual = "Berdasarkan konsep konten slide tersebut, buatkan saya 'Image Prompt' yang sangat detil untuk saya masukkan ke mesin AI Image Generator (seperti Midjourney atau DALL-E). Pastikan prompt tersebut menjelaskan gaya pencahayaan, komposisi produk, warna latar belakang yang estetik, dan suasana profesional untuk katalog produk UMKM."
+    # LANGKAH 3
+    st.markdown("**Langkah 3: Eksekusi Pembuatan Gambar**")
+    prompt_visual = "Berdasarkan konsep konten slide yang baru saja kamu buatkan tersebut, tolong langsung hasilkan (generate) gambar desain infografisnya sekarang juga. Pastikan gambar memiliki gaya pencahayaan yang baik, komposisi produk rapi, warna latar belakang yang estetik, dan suasana profesional yang cocok untuk katalog produk UMKM."
+    st.write("Setelah AI membuatkan konsep naskahnya, salin instruksi di bawah ini untuk langsung memerintahkan AI menggambar desainnya:")
     st.code(prompt_visual, language="text")
 
     # --- NAVIGASI STUDIO ---
