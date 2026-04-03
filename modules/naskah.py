@@ -50,7 +50,7 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
     if "wizard_step" not in st.session_state:
         st.session_state.wizard_step = 1
         st.session_state.jawaban = {
-            "produk": "", "poin_penting": "", "audiens": "", "platform_tujuan": "", 
+            "produk": "", "poin_penting": "", "audiens": "", "sapaan": "", "platform_tujuan": "", 
             "durasi": "", "vibe": "", "tambahan": ""
         }
         st.session_state.hasil_naskah = ""
@@ -99,14 +99,24 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
                 else:
                     st.warning("Mohon pilih atau isi poin penting terlebih dahulu.")
 
-    # --- LANGKAH 3: SASARAN KONSUMEN (AUDIENS) ---
+    # --- LANGKAH 3: SASARAN KONSUMEN (AUDIENS) & SAPAAN ---
     elif st.session_state.wizard_step == 3:
-        st.subheader("Langkah 3 dari 6: Sasaran Konsumen")
-        pilihan_audiens = st.selectbox("Siapa target audiens atau pembaca naskah ini?", 
-                                       ["Pilih...", "Pensiunan / Senior (Jelas, santai, hormat)", "Profesional / Pekerja (Formal, padat, lugas)", "Anak Muda / Gen Z (Cepat, kasual, gaul)", "Ibu Rumah Tangga (Hangat, akrab, praktis)", "Isi Sendiri ..."], key="sb_aud")
-        jawaban_audiens = pilihan_audiens
-        if pilihan_audiens == "Isi Sendiri ...":
-            jawaban_audiens = st.text_input("Masukkan target audiens Anda secara spesifik:", key="ti_aud")
+        st.subheader("Langkah 3 dari 6: Sasaran Konsumen & Sapaan")
+        
+        col_aud, col_sap = st.columns(2)
+        with col_aud:
+            pilihan_audiens = st.selectbox("Siapa target audiens atau pembaca naskah ini?", 
+                                           ["Pilih...", "Pensiunan / Senior (Jelas, santai, hormat)", "Profesional / Pekerja (Formal, padat, lugas)", "Anak Muda / Gen Z (Cepat, kasual, gaul)", "Ibu Rumah Tangga (Hangat, akrab, praktis)", "Isi Sendiri ..."], key="sb_aud")
+            jawaban_audiens = pilihan_audiens
+            if pilihan_audiens == "Isi Sendiri ...":
+                jawaban_audiens = st.text_input("Masukkan target audiens Anda secara spesifik:", key="ti_aud")
+                
+        with col_sap:
+            pilihan_sapaan = st.selectbox("Panggilan/Sapaan apa yang biasa dipakai?", 
+                                          ["Pilih...", "Teman-teman", "Bapak/Ibu", "Saudara-saudari", "Sobat UMKM", "Kakak/Adik", "Isi Sendiri ..."], key="sb_sap")
+            jawaban_sapaan = pilihan_sapaan
+            if pilihan_sapaan == "Isi Sendiri ...":
+                jawaban_sapaan = st.text_input("Masukkan sapaan spesifik Anda:", key="ti_sap")
 
         col1, col2 = st.columns(2)
         with col1:
@@ -115,12 +125,13 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
                 st.rerun()
         with col2:
             if st.button("Selanjutnya ➡️", key="btn_next_3"):
-                if jawaban_audiens and jawaban_audiens != "Pilih...":
+                if jawaban_audiens and jawaban_audiens != "Pilih..." and jawaban_sapaan and jawaban_sapaan != "Pilih...":
                     st.session_state.jawaban["audiens"] = jawaban_audiens
+                    st.session_state.jawaban["sapaan"] = jawaban_sapaan
                     st.session_state.wizard_step = 4
                     st.rerun()
                 else:
-                    st.warning("Mohon pilih atau isi sasaran konsumen terlebih dahulu.")
+                    st.warning("Mohon pilih/isi sasaran konsumen beserta sapaannya terlebih dahulu.")
 
     # --- LANGKAH 4: PLATFORM & TUJUAN ---
     elif st.session_state.wizard_step == 4:
@@ -200,7 +211,13 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
 
         edit_produk = st.text_input("1. Produk/Jasa", value=st.session_state.jawaban.get("produk", ""), key="ed_prod")
         edit_poin = st.text_area("2. Keunggulan", value=st.session_state.jawaban.get("poin_penting", ""), key="ed_poin")
-        edit_audiens = st.text_input("3. Sasaran Konsumen", value=st.session_state.jawaban.get("audiens", ""), key="ed_aud")
+        
+        col_ed1, col_ed2 = st.columns(2)
+        with col_ed1:
+            edit_audiens = st.text_input("3a. Sasaran Konsumen", value=st.session_state.jawaban.get("audiens", ""), key="ed_aud")
+        with col_ed2:
+            edit_sapaan = st.text_input("3b. Sapaan/Panggilan", value=st.session_state.jawaban.get("sapaan", ""), key="ed_sap")
+            
         edit_platform = st.text_input("4. Platform/Tujuan", value=st.session_state.jawaban.get("platform_tujuan", ""), key="ed_plat")
         edit_tambahan = st.text_area("Catatan Tambahan (Opsional)", placeholder="Misal: Wajib sebutkan promo bebas ongkir.", key="ed_tambahan")
 
@@ -215,6 +232,7 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
                     st.session_state.jawaban["produk"] = edit_produk
                     st.session_state.jawaban["poin_penting"] = edit_poin
                     st.session_state.jawaban["audiens"] = edit_audiens
+                    st.session_state.jawaban["sapaan"] = edit_sapaan
                     st.session_state.jawaban["platform_tujuan"] = edit_platform
                     st.session_state.jawaban["durasi"] = jawaban_durasi
                     st.session_state.jawaban["vibe"] = jawaban_vibe
@@ -257,12 +275,13 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
                         - Produk/Jasa: {st.session_state.jawaban.get('produk', '')}
                         - Keunggulan Utama: {st.session_state.jawaban.get('poin_penting', '')}
                         - Sasaran Konsumen: {st.session_state.jawaban.get('audiens', '')}
+                        - Sapaan/Panggilan: {st.session_state.jawaban.get('sapaan', '')}
                         - Platform & Tujuan: {st.session_state.jawaban.get('platform_tujuan', '')}
                         - Target Durasi/Panjang: {st.session_state.jawaban.get('durasi', '')}
                         - Suasana/Vibe: {st.session_state.jawaban.get('vibe', '')}
                         - Catatan Tambahan: {st.session_state.jawaban.get('tambahan', '')}
                         
-                        ATURAN KHUSUS SAAT INI (BACA DENGAN TELITI): {instruksi_tambahan}.
+                        ATURAN KHUSUS SAAT INI (BACA DENGAN TELITI): {instruksi_tambahan}. Pastikan untuk menggunakan kata sapaan/panggilan yang diminta dalam naskah utama.
                         """
                         
                         response = model.generate_content(prompt_final)
