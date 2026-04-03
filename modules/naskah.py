@@ -136,7 +136,6 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
     # --- LANGKAH 4: PLATFORM & TUJUAN ---
     elif st.session_state.wizard_step == 4:
         st.subheader("Langkah 4 dari 6: Platform & Tujuan Penggunaan")
-        # Pre-fill dengan jawaban sebelumnya jika ada (membantu saat klik Ganti Format)
         pilihan_platform = st.selectbox("Di mana naskah ini akan dipublikasikan?", 
                                         ["Pilih...", 
                                          "Pesan Singkat (WhatsApp / Telegram / Threads)", 
@@ -296,16 +295,22 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
                         else:
                             st.error(f"❌ Terjadi kesalahan saat menghubungi AI: {e}")
         else:
-            # Membuka peluang untuk diedit oleh user dan menyimpannya langsung ke session_state
-            edited_text = st.text_area("📝 Naskah Final (Silakan edit langsung di dalam kotak ini jika diperlukan):", value=st.session_state.hasil_naskah, height=400, key="ta_hasil_final")
-            st.session_state.hasil_naskah = edited_text
+            # Menggunakan sistem Tab agar tampilan tetap rapi, tombol copy tetap ada, namun naskah tetap bisa diedit.
+            tab1, tab2 = st.tabs(["📄 Hasil Naskah (Klik Icon Copy)", "✏️ Edit Naskah Manual"])
+            
+            with tab1:
+                st.markdown(st.session_state.hasil_naskah)
+                
+            with tab2:
+                st.info("💡 Anda bisa mengubah kata-kata secara manual di kotak ini. **Penting:** Mohon JANGAN MENGHAPUS tanda ```text di awal dan ``` di bagian paling akhir naskah agar fitur tombol *copy* (tumpukan dokumen) di tab sebelah tetap berfungsi.")
+                edited_text = st.text_area("Edit langsung naskah di sini:", value=st.session_state.hasil_naskah, height=400, key="ta_hasil_final")
+                st.session_state.hasil_naskah = edited_text
 
             st.divider()
             st.info("🛠️ **Opsi Perubahan Naskah:**\nAnda bisa membuat ulang untuk produk/jasa lain, atau mengubah platform/format untuk produk ini (misal: dari WA ke Infografis) tanpa mengetik ulang info dari awal.")
             
             col_reset1, col_reset2 = st.columns(2)
             with col_reset1:
-                # Tombol Ganti Format memicu rerun ke Langkah 4 dan MENGHAPUS memori hasil naskah lama
                 if st.button("🔁 Ganti Format (Platform/Tujuan) untuk Produk Ini", use_container_width=True, key="btn_ganti_format"):
                     st.session_state.hasil_naskah = ""
                     st.session_state.wizard_step = 4
@@ -321,7 +326,6 @@ Kamu WAJIB membungkus naskah final di dalam kotak kode (markdown code block) den
             st.divider()
             st.info("🚀 **Lanjut Tahap Produksi:**\nSistem kami akan otomatis menarik data dari naskah di atas. Silakan pilih studio selanjutnya:")
             
-            # Mendefinisikan kolom navigasi dengan sangat eksplisit untuk mencegah NameError
             col_nav1, col_nav2 = st.columns(2)
             with col_nav1:
                 if st.button("🎨 Ke Studio Kreasi Cetak / Visual", use_container_width=True, key="btn_nav_visual"):
